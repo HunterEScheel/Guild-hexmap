@@ -12,6 +12,7 @@ import {
   useHexData,
   useQuests,
   setHexTerrain,
+  setHexChallengeTier,
   createQuest,
   updateQuest,
   deleteQuest,
@@ -20,7 +21,7 @@ import {
 } from "./hooks/useFirebase";
 import { useAdminMode } from "./hooks/useAdminMode";
 import { hexNeighbors } from "./utils/hexMath";
-import type { Quest, TerrainType } from "./types";
+import type { ChallengeTier, Quest, TerrainType } from "./types";
 import "./index.css";
 
 type Page = "map" | "bounties" | "active-quests";
@@ -85,6 +86,7 @@ function App() {
   const [selectedTerrain, setSelectedTerrain] = useState<TerrainType | null>(
     null
   );
+  const [selectedTier, setSelectedTier] = useState<ChallengeTier | null>(null);
 
   // Player
   const [playerName, setPlayerName] = useState<string | null>(() =>
@@ -109,11 +111,15 @@ function App() {
         setHexTerrain(col, row, selectedTerrain);
         return;
       }
+      if (isAdmin && selectedTier) {
+        setHexChallengeTier(col, row, selectedTier);
+        return;
+      }
       setSelectedHex((prev) =>
         prev?.col === col && prev?.row === row ? null : { col, row }
       );
     },
-    [isAdmin, selectedTerrain]
+    [isAdmin, selectedTerrain, selectedTier]
   );
 
   const handleJoinQuest = useCallback(
@@ -236,6 +242,8 @@ function App() {
         <AdminToolbar
           selectedTerrain={selectedTerrain}
           onSelectTerrain={setSelectedTerrain}
+          selectedTier={selectedTier}
+          onSelectTier={setSelectedTier}
           onLogout={logout}
         />
       )}

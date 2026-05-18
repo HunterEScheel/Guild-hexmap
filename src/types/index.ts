@@ -21,10 +21,13 @@ export type QuestLevel =
 
 export type QuestStatus = "available" | "in_progress" | "completed";
 
+export type ChallengeTier = 1 | 2 | 3 | 4;
+
 export interface HexData {
   col: number;
   row: number;
   terrain: TerrainType;
+  challengeTier: ChallengeTier | null;
 }
 
 export interface Quest {

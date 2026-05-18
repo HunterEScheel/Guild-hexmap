@@ -1,5 +1,9 @@
+import { useState } from "react";
 import { TERRAIN_COLORS, TERRAIN_LABELS } from "../utils/colors";
 import { QuestCard } from "./QuestCard";
+import { TIER_LABELS } from "../data/encounters";
+import type { Encounter } from "../data/encounters";
+import { getRandomEncounter } from "../hooks/useFirebase";
 import type { HexData, Quest } from "../types";
 
 interface SidePanelProps {
@@ -27,7 +31,10 @@ export function SidePanel({
   onDeleteQuest,
   onAddQuest,
 }: SidePanelProps) {
+  const [encounter, setEncounter] = useState<Encounter | null>(null);
   const terrain = hexData?.terrain ?? "unknown";
+  const challengeTier = hexData?.challengeTier ?? null;
+  const canHaveEncounters = terrain !== "allied_city" && terrain !== "unknown";
   const hexQuests = selectedHex
     ? quests.filter(
         (q) => q.hexCol === selectedHex.col && q.hexRow === selectedHex.row
@@ -85,6 +92,109 @@ export function SidePanel({
               <span style={{ fontSize: 14 }}>{TERRAIN_LABELS[terrain]}</span>
             </div>
           </div>
+
+          {/* Challenge Tier */}
+          {canHaveEncounters && (
+            <div style={{ marginBottom: 16 }}>
+              <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#9ca3af" }}>
+                Challenge Tier
+              </h3>
+              {challengeTier ? (
+                <span style={{ fontSize: 13, color: "#d1d5db" }}>
+                  {TIER_LABELS[challengeTier]}
+                </span>
+              ) : (
+                <span style={{ fontSize: 12, color: "#6b7280" }}>
+                  Not assigned
+                </span>
+              )}
+
+              {/* Random Encounter Button */}
+              {isAdmin && challengeTier && (
+                <button
+                  onClick={async () => {
+                    const result = await getRandomEncounter(terrain, challengeTier);
+                    setEncounter(result);
+                  }}
+                  style={{
+                    display: "block",
+                    marginTop: 8,
+                    width: "100%",
+                    background: "#f97316",
+                    color: "#000",
+                    border: "none",
+                    borderRadius: 4,
+                    padding: "6px 12px",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontFamily: "'Cinzel', serif",
+                    letterSpacing: "0.5px",
+                  }}
+                >
+                  Random Encounter
+                </button>
+              )}
+
+              {/* Encounter Result */}
+              {encounter && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    background: "#1e1e36",
+                    borderRadius: 8,
+                    padding: 12,
+                    borderLeft: "4px solid #f97316",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      marginBottom: 6,
+                    }}
+                  >
+                    <div>
+                      <h4 style={{ margin: 0, color: "#f97316", fontSize: 14 }}>
+                        {encounter.name}
+                      </h4>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          color: encounter.isCombat ? "#ef4444" : "#4ade80",
+                          textTransform: "uppercase",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {encounter.isCombat ? "Combat" : "Non-Combat"}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setEncounter(null)}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: "#6b7280",
+                        cursor: "pointer",
+                        fontSize: 14,
+                        padding: 0,
+                        lineHeight: 1,
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 6 }}>
+                    {encounter.description}
+                  </p>
+                  <p style={{ color: "#fbbf24", fontSize: 12 }}>
+                    Creatures: {encounter.creatures}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <div

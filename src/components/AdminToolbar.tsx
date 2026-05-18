@@ -1,5 +1,5 @@
 import { TERRAIN_COLORS, TERRAIN_LABELS } from "../utils/colors";
-import type { TerrainType } from "../types";
+import type { ChallengeTier, TerrainType } from "../types";
 
 const TERRAIN_TYPES: TerrainType[] = [
   "forest",
@@ -14,17 +14,34 @@ const TERRAIN_TYPES: TerrainType[] = [
   "unknown",
 ];
 
+const TIER_CONFIG: { tier: ChallengeTier; label: string; color: string }[] = [
+  { tier: 1, label: "T1 (1-5)", color: "#4ade80" },
+  { tier: 2, label: "T2 (6-10)", color: "#facc15" },
+  { tier: 3, label: "T3 (11-15)", color: "#f97316" },
+  { tier: 4, label: "T4 (16-20)", color: "#ef4444" },
+];
+
 interface AdminToolbarProps {
   selectedTerrain: TerrainType | null;
   onSelectTerrain: (terrain: TerrainType | null) => void;
+  selectedTier: ChallengeTier | null;
+  onSelectTier: (tier: ChallengeTier | null) => void;
   onLogout: () => void;
 }
 
 export function AdminToolbar({
   selectedTerrain,
   onSelectTerrain,
+  selectedTier,
+  onSelectTier,
   onLogout,
 }: AdminToolbarProps) {
+  const paintingLabel = selectedTerrain
+    ? `Painting: ${TERRAIN_LABELS[selectedTerrain]}`
+    : selectedTier
+      ? `Painting: Tier ${selectedTier}`
+      : null;
+
   return (
     <div
       style={{
@@ -34,6 +51,7 @@ export function AdminToolbar({
         padding: "8px 16px",
         background: "#1e1e36",
         borderBottom: "1px solid #2e2e4a",
+        flexWrap: "wrap",
       }}
     >
       <span
@@ -52,7 +70,10 @@ export function AdminToolbar({
       {TERRAIN_TYPES.map((t) => (
         <button
           key={t}
-          onClick={() => onSelectTerrain(selectedTerrain === t ? null : t)}
+          onClick={() => {
+            onSelectTier(null);
+            onSelectTerrain(selectedTerrain === t ? null : t);
+          }}
           title={TERRAIN_LABELS[t]}
           style={{
             width: 28,
@@ -68,10 +89,51 @@ export function AdminToolbar({
           }}
         />
       ))}
+
+      <div
+        style={{
+          width: 1,
+          height: 20,
+          background: "#2e2e4a",
+          margin: "0 4px",
+        }}
+      />
+
+      <span style={{ color: "#6b7280", fontSize: 12, marginRight: 4 }}>
+        Tier:
+      </span>
+      {TIER_CONFIG.map(({ tier, label, color }) => (
+        <button
+          key={tier}
+          onClick={() => {
+            onSelectTerrain(null);
+            onSelectTier(selectedTier === tier ? null : tier);
+          }}
+          title={label}
+          style={{
+            height: 28,
+            borderRadius: 4,
+            border:
+              selectedTier === tier
+                ? "2px solid #fff"
+                : "2px solid transparent",
+            background: color,
+            color: "#000",
+            cursor: "pointer",
+            outline: "none",
+            fontSize: 11,
+            fontWeight: 700,
+            padding: "0 8px",
+          }}
+        >
+          T{tier}
+        </button>
+      ))}
+
       <div style={{ flex: 1 }} />
-      {selectedTerrain && (
+      {paintingLabel && (
         <span style={{ color: "#e8e8f0", fontSize: 12 }}>
-          Painting: {TERRAIN_LABELS[selectedTerrain]}
+          {paintingLabel}
         </span>
       )}
       <button
