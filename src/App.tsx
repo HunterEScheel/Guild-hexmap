@@ -8,6 +8,7 @@ import { QuestEditor } from "./components/QuestEditor";
 import { Legend } from "./components/Legend";
 import { BountyBoard } from "./components/BountyBoard";
 import { ActiveQuests } from "./components/ActiveQuests";
+import { Bestiary } from "./components/Bestiary";
 import {
   useHexData,
   useQuests,
@@ -24,7 +25,7 @@ import { hexNeighbors } from "./utils/hexMath";
 import type { ChallengeTier, Quest, TerrainType } from "./types";
 import "./index.css";
 
-type Page = "map" | "bounties" | "active-quests";
+type Page = "map" | "bounties" | "active-quests" | "bestiary";
 
 function App() {
   const [page, setPage] = useState<Page>("map");
@@ -235,6 +236,7 @@ function App() {
       >
         <NavTab label="Map" active={page === "map"} onClick={() => setPage("map")} />
         <NavTab label="Active Quests" active={page === "active-quests"} onClick={() => setPage("active-quests")} />
+        <NavTab label="Bestiary" active={page === "bestiary"} onClick={() => setPage("bestiary")} />
         <NavTab label="Bounty Board" active={page === "bounties"} onClick={() => setPage("bounties")} />
       </nav>
 
@@ -311,6 +313,10 @@ function App() {
             onEditQuest={handleEditQuest}
             onDeleteQuest={handleDeleteQuest}
           />
+        </div>
+      ) : page === "bestiary" ? (
+        <div style={{ flex: 1, overflow: "auto" }}>
+          <Bestiary />
         </div>
       ) : (
         <div style={{ flex: 1, overflow: "auto" }}>

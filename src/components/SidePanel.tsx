@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { TERRAIN_COLORS, TERRAIN_LABELS } from "../utils/colors";
 import { QuestCard } from "./QuestCard";
-import { TIER_LABELS } from "../data/encounters";
-import type { Encounter } from "../data/encounters";
-import { getRandomEncounter } from "../hooks/useFirebase";
-import type { HexData, Quest } from "../types";
+import { TIER_LABELS, TIER_XP_RANGE, formatCr } from "../data/bestiary";
+import type { GeneratedEncounter } from "../data/bestiary";
+import { generateEncounter } from "../services/dnd5e";
+import type { ChallengeTier, HexData, Quest } from "../types";
 
 interface SidePanelProps {
   selectedHex: { col: number; row: number } | null;
@@ -31,7 +31,8 @@ export function SidePanel({
   onDeleteQuest,
   onAddQuest,
 }: SidePanelProps) {
-  const [encounter, setEncounter] = useState<Encounter | null>(null);
+  const [encounter, setEncounter] = useState<GeneratedEncounter | null>(null);
+  const [generating, setGenerating] = useState(false);
   const terrain = hexData?.terrain ?? "unknown";
   const challengeTier = hexData?.challengeTier ?? null;
   const canHaveEncounters = terrain !== "allied_city" && terrain !== "unknown";
@@ -109,89 +110,50 @@ export function SidePanel({
                 </span>
               )}
 
-              {/* Random Encounter Button */}
+              {/* Random Encounter Generator */}
               {isAdmin && challengeTier && (
                 <button
+                  disabled={generating}
                   onClick={async () => {
-                    const result = await getRandomEncounter(terrain, challengeTier);
-                    setEncounter(result);
+                    setGenerating(true);
+                    setEncounter(null);
+                    try {
+                      const result = await generateEncounter(
+                        terrain,
+                        challengeTier
+                      );
+                      setEncounter(result);
+                    } finally {
+                      setGenerating(false);
+                    }
                   }}
                   style={{
                     display: "block",
                     marginTop: 8,
                     width: "100%",
-                    background: "#f97316",
+                    background: generating ? "#7a5320" : "#f97316",
                     color: "#000",
                     border: "none",
                     borderRadius: 4,
                     padding: "6px 12px",
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: "pointer",
+                    cursor: generating ? "wait" : "pointer",
                     fontFamily: "'Cinzel', serif",
                     letterSpacing: "0.5px",
                   }}
                 >
-                  Random Encounter
+                  {generating ? "Generating..." : "Random Encounter"}
                 </button>
               )}
 
               {/* Encounter Result */}
-              {encounter && (
-                <div
-                  style={{
-                    marginTop: 10,
-                    background: "#1e1e36",
-                    borderRadius: 8,
-                    padding: 12,
-                    borderLeft: "4px solid #f97316",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      marginBottom: 6,
-                    }}
-                  >
-                    <div>
-                      <h4 style={{ margin: 0, color: "#f97316", fontSize: 14 }}>
-                        {encounter.name}
-                      </h4>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          color: encounter.isCombat ? "#ef4444" : "#4ade80",
-                          textTransform: "uppercase",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {encounter.isCombat ? "Combat" : "Non-Combat"}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setEncounter(null)}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        color: "#6b7280",
-                        cursor: "pointer",
-                        fontSize: 14,
-                        padding: 0,
-                        lineHeight: 1,
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 6 }}>
-                    {encounter.description}
-                  </p>
-                  <p style={{ color: "#fbbf24", fontSize: 12 }}>
-                    Creatures: {encounter.creatures}
-                  </p>
-                </div>
+              {encounter && challengeTier && (
+                <EncounterResult
+                  encounter={encounter}
+                  tier={challengeTier}
+                  onClose={() => setEncounter(null)}
+                />
               )}
             </div>
           )}
@@ -247,6 +209,116 @@ export function SidePanel({
             )}
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+function EncounterResult({
+  encounter,
+  tier,
+  onClose,
+}: {
+  encounter: GeneratedEncounter;
+  tier: ChallengeTier;
+  onClose: () => void;
+}) {
+  const [minXP, maxXP] = TIER_XP_RANGE[tier];
+
+  return (
+    <div
+      style={{
+        marginTop: 10,
+        background: "#1e1e36",
+        borderRadius: 8,
+        padding: 12,
+        borderLeft: "4px solid #f97316",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 8,
+        }}
+      >
+        <div>
+          <h4 style={{ margin: 0, color: "#f97316", fontSize: 15 }}>
+            Random Encounter
+          </h4>
+          <span style={{ fontSize: 11, color: "#9ca3af" }}>
+            {TIER_LABELS[tier]} &middot; {minXP.toLocaleString()}–
+            {maxXP.toLocaleString()} XP
+          </span>
+        </div>
+        <button
+          onClick={onClose}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "#6b7280",
+            cursor: "pointer",
+            fontSize: 14,
+            padding: 0,
+            lineHeight: 1,
+          }}
+        >
+          ✕
+        </button>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {encounter.groups.map((group) => (
+          <div
+            key={group.creature.index}
+            style={{ background: "#12121f", borderRadius: 4, padding: "6px 10px" }}
+          >
+            <div
+              style={{ display: "flex", justifyContent: "space-between", gap: 8 }}
+            >
+              <span
+                style={{ color: "#e8e8f0", fontWeight: 600, fontSize: 13 }}
+              >
+                {group.count}× {group.creature.name}
+              </span>
+              <span style={{ color: "#fbbf24", fontSize: 12, whiteSpace: "nowrap" }}>
+                {(group.count * group.creature.combatPoints).toLocaleString()} XP
+              </span>
+            </div>
+            <span style={{ fontSize: 11, color: "#9ca3af" }}>
+              CR {formatCr(group.creature.challengeRating)} &middot; HP{" "}
+              {group.creature.hitPoints} &middot; AC {group.creature.armorClass}{" "}
+              &middot; {group.creature.combatPoints.toLocaleString()} XP each
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          marginTop: 8,
+          display: "flex",
+          justifyContent: "space-between",
+          fontSize: 12,
+        }}
+      >
+        <span style={{ color: "#9ca3af" }}>
+          {encounter.totalCreatures} creatures
+        </span>
+        <span
+          style={{
+            color: encounter.withinBudget ? "#fbbf24" : "#ef4444",
+            fontWeight: 600,
+          }}
+        >
+          {encounter.totalCombatPoints.toLocaleString()} CP
+        </span>
+      </div>
+      {!encounter.withinBudget && (
+        <p style={{ fontSize: 10, color: "#ef4444", margin: "4px 0 0" }}>
+          Closest match — terrain pool could not fill the tier's XP range.
+        </p>
       )}
     </div>
   );

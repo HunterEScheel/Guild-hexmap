@@ -27,20 +27,6 @@ create table where not exists quests (
   created_at timestamptz default now()
 );
 
--- Encounters table
-create table where not exists encounters (
-  id uuid default gen_random_uuid() primary key,
-  terrain text not null,
-  tier integer not null check (tier between 1 and 4),
-  name text not null,
-  description text not null default '',
-  creatures text not null default '',
-  is_combat boolean not null default true,
-  created_at timestamptz default now()
-);
-
-create index where not exists idx_encounters_terrain_tier on encounters (terrain, tier);
-
 -- Enable real-time for both tables
 alter publication supabase_realtime add table hexes;
 alter publication supabase_realtime add table quests;
@@ -53,9 +39,4 @@ create policy "Allow all access to hexes" on hexes
   for all using (true) with check (true);
 
 create policy "Allow all access to quests" on quests
-  for all using (true) with check (true);
-
-alter table encounters enable row level security;
-
-create policy "Allow all access to encounters" on encounters
   for all using (true) with check (true);

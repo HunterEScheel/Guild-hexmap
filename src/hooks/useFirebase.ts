@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
 import type { ChallengeTier, HexData, Quest, TerrainType } from "../types/index";
-import type { Encounter } from "../data/encounters";
 
 export function useHexData(): Map<string, HexData> {
   const [hexes, setHexes] = useState<Map<string, HexData>>(new Map());
@@ -222,33 +221,4 @@ export async function leaveQuest(
       .update({ players: players.filter((p) => p !== playerName) })
       .eq("id", questId);
   }
-}
-
-export async function getRandomEncounter(
-  terrain: TerrainType,
-  tier: ChallengeTier
-): Promise<Encounter | null> {
-  const { data, error } = await supabase
-    .from("encounters")
-    .select("*")
-    .eq("terrain", terrain)
-    .eq("tier", tier);
-
-  if (error) {
-    console.error("Encounter fetch error:", error);
-    return null;
-  }
-
-  if (!data || data.length === 0) return null;
-
-  const row = data[Math.floor(Math.random() * data.length)];
-  return {
-    id: row.id,
-    terrain: row.terrain,
-    tier: row.tier,
-    name: row.name,
-    description: row.description,
-    creatures: row.creatures,
-    isCombat: row.is_combat,
-  };
 }
