@@ -60,11 +60,17 @@ export const TIER_XP_RANGE: Record<ChallengeTier, [number, number]> = {
   4: [6000, 22000],
 };
 
-// An encounter holds at least 2 creatures and at most 3 distinct types.
+// An encounter holds 2-10 creatures across 1-3 distinct types. The number of
+// types is weighted: 50% one type, 40% two types, 10% three types.
 const MIN_CREATURES = 2;
+const MAX_CREATURES = 10;
 const MAX_TYPES = 3;
-const MAX_PER_TYPE = 10;
 const COMPOSE_ATTEMPTS = 400;
+const TYPE_COUNT_WEIGHTS: { types: number; weight: number }[] = [
+  { types: 1, weight: 0.5 },
+  { types: 2, weight: 0.4 },
+  { types: 3, weight: 0.1 },
+];
 
 // Challenge rating display: fractional CRs render as fractions (0.25 -> "1/4").
 export function formatCr(cr: number): string {
@@ -154,6 +160,17 @@ function sampleDistinct(pool: Creature[], n: number): Creature[] {
   return out;
 }
 
+// Weighted random number of creature types, capped at the pool size.
+function pickTypeCount(maxTypes: number): number {
+  const roll = Math.random();
+  let cumulative = 0;
+  for (const { types, weight } of TYPE_COUNT_WEIGHTS) {
+    cumulative += weight;
+    if (roll < cumulative) return Math.min(types, maxTypes);
+  }
+  return Math.min(MAX_TYPES, maxTypes);
+}
+
 function summarize(
   groups: EncounterGroup[],
   minXP: number,
@@ -181,22 +198,33 @@ export function composeEncounter(
 ): GeneratedEncounter | null {
   if (pool.length === 0) return null;
   const [minXP, maxXP] = TIER_XP_RANGE[tier];
-  const maxTypes = Math.min(MAX_TYPES, pool.length);
+  // The type count is chosen once so the returned encounter follows the
+  // weighting, rather than the first composition that happens to fit budget.
+  const typeCount = pickTypeCount(Math.min(MAX_TYPES, pool.length));
 
   let best: GeneratedEncounter | null = null;
   let bestDistance = Infinity;
 
   for (let attempt = 0; attempt < COMPOSE_ATTEMPTS; attempt++) {
-    const groups: EncounterGroup[] = sampleDistinct(
-      pool,
-      randInt(1, maxTypes)
-    ).map((creature) => ({ creature, count: randInt(1, MAX_PER_TYPE) }));
+    const creatures = sampleDistinct(pool, typeCount);
+    const counts = creatures.map(() => 1);
+    let total = counts.length;
 
+    // Distribute extra creatures at random without exceeding the cap.
+    for (let extras = randInt(0, MAX_CREATURES - total); extras > 0; extras--) {
+      counts[Math.floor(Math.random() * counts.length)]++;
+      total++;
+    }
     // Guarantee the encounter holds at least MIN_CREATURES creatures.
-    while (groups.reduce((sum, g) => sum + g.count, 0) < MIN_CREATURES) {
-      groups[0].count++;
+    while (total < MIN_CREATURES) {
+      counts[0]++;
+      total++;
     }
 
+    const groups: EncounterGroup[] = creatures.map((creature, i) => ({
+      creature,
+      count: counts[i],
+    }));
     const encounter = summarize(groups, minXP, maxXP);
     if (encounter.withinBudget) return encounter;
 
