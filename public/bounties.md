@@ -22,383 +22,326 @@ Incorporeal creatures leave no body. The guild cannot verify a kill without proo
 
 ---
 
-## Bounty Rates by Challenge Rating
+## Bounty Rates
 
-Every non-undead creature the guild has catalogued (314 in total), sorted by threat. The bounty is a flat rate set by the creature's challenge-rating bracket.
+Every non-undead creature the guild has catalogued (314 in total), listed alphabetically. The bounty reflects the threat a creature poses -- the deadlier it is, the more its kill is worth.
 
-### CR 0 — 5 sp
-
-| Creature | CR | Size |
+| Creature | Size | Bounty |
 | --- | --- | --- |
-| Awakened Shrub | 0 | Small |
-| Baboon | 0 | Small |
-| Badger | 0 | Tiny |
-| Bat | 0 | Tiny |
-| Cat | 0 | Tiny |
-| Commoner | 0 | Medium |
-| Crab | 0 | Tiny |
-| Deer | 0 | Medium |
-| Eagle | 0 | Small |
-| Frog | 0 | Tiny |
-| Giant Fire Beetle | 0 | Small |
-| Goat | 0 | Medium |
-| Hawk | 0 | Tiny |
-| Homunculus | 0 | Tiny |
-| Hyena | 0 | Medium |
-| Jackal | 0 | Small |
-| Lemure | 0 | Medium |
-| Lizard | 0 | Tiny |
-| Octopus | 0 | Small |
-| Owl | 0 | Tiny |
-| Quipper | 0 | Tiny |
-| Rat | 0 | Tiny |
-| Raven | 0 | Tiny |
-| Scorpion | 0 | Tiny |
-| Sea Horse | 0 | Tiny |
-| Shrieker | 0 | Medium |
-| Spider | 0 | Tiny |
-| Vulture | 0 | Medium |
-| Weasel | 0 | Tiny |
-
-### CR 1/8 – 1/4 — 1 gp
-
-| Creature | CR | Size |
-| --- | --- | --- |
-| Bandit | 1/8 | Medium |
-| Blood Hawk | 1/8 | Small |
-| Camel | 1/8 | Large |
-| Cultist | 1/8 | Medium |
-| Flying Snake | 1/8 | Tiny |
-| Giant Crab | 1/8 | Medium |
-| Giant Rat | 1/8 | Small |
-| Giant Rat (Diseased) | 1/8 | Small |
-| Giant Weasel | 1/8 | Medium |
-| Guard | 1/8 | Medium |
-| Kobold | 1/8 | Small |
-| Mastiff | 1/8 | Medium |
-| Merfolk | 1/8 | Medium |
-| Mule | 1/8 | Medium |
-| Noble | 1/8 | Medium |
-| Poisonous Snake | 1/8 | Tiny |
-| Pony | 1/8 | Medium |
-| Stirge | 1/8 | Tiny |
-| Tribal Warrior | 1/8 | Medium |
-| Acolyte | 1/4 | Medium |
-| Axe Beak | 1/4 | Large |
-| Blink Dog | 1/4 | Medium |
-| Boar | 1/4 | Medium |
-| Constrictor Snake | 1/4 | Large |
-| Draft Horse | 1/4 | Large |
-| Dretch | 1/4 | Small |
-| Drow | 1/4 | Medium |
-| Elk | 1/4 | Large |
-| Flying Sword | 1/4 | Small |
-| Giant Badger | 1/4 | Medium |
-| Giant Bat | 1/4 | Large |
-| Giant Centipede | 1/4 | Small |
-| Giant Frog | 1/4 | Medium |
-| Giant Lizard | 1/4 | Large |
-| Giant Owl | 1/4 | Large |
-| Giant Poisonous Snake | 1/4 | Medium |
-| Giant Wolf Spider | 1/4 | Medium |
-| Goblin | 1/4 | Small |
-| Grimlock | 1/4 | Medium |
-| Panther | 1/4 | Medium |
-| Pseudodragon | 1/4 | Tiny |
-| Riding Horse | 1/4 | Large |
-| Sprite | 1/4 | Tiny |
-| Steam Mephit | 1/4 | Small |
-| Swarm of Bats | 1/4 | Medium |
-| Swarm of Rats | 1/4 | Medium |
-| Swarm of Ravens | 1/4 | Medium |
-| Violet Fungus | 1/4 | Medium |
-| Wolf | 1/4 | Medium |
-
-### CR 1/2 – 1 — 5 gp
-
-| Creature | CR | Size |
-| --- | --- | --- |
-| Ape | 1/2 | Medium |
-| Black Bear | 1/2 | Medium |
-| Cockatrice | 1/2 | Small |
-| Crocodile | 1/2 | Large |
-| Darkmantle | 1/2 | Small |
-| Deep Gnome (Svirfneblin) | 1/2 | Small |
-| Dust Mephit | 1/2 | Small |
-| Giant Goat | 1/2 | Large |
-| Giant Sea Horse | 1/2 | Large |
-| Giant Wasp | 1/2 | Medium |
-| Gnoll | 1/2 | Medium |
-| Gray Ooze | 1/2 | Medium |
-| Hobgoblin | 1/2 | Medium |
-| Ice Mephit | 1/2 | Small |
-| Lizardfolk | 1/2 | Medium |
-| Magma Mephit | 1/2 | Small |
-| Magmin | 1/2 | Small |
-| Orc | 1/2 | Medium |
-| Reef Shark | 1/2 | Medium |
-| Rust Monster | 1/2 | Medium |
-| Sahuagin | 1/2 | Medium |
-| Satyr | 1/2 | Medium |
-| Scout | 1/2 | Medium |
-| Swarm of Beetles | 1/2 | Medium |
-| Swarm of Centipedes | 1/2 | Medium |
-| Swarm of Insects | 1/2 | Medium |
-| Swarm of Spiders | 1/2 | Medium |
-| Swarm of Wasps | 1/2 | Medium |
-| Thug | 1/2 | Medium |
-| Warhorse | 1/2 | Large |
-| Worg | 1/2 | Large |
-| Animated Armor | 1 | Medium |
-| Brass Dragon Wyrmling | 1 | Medium |
-| Brown Bear | 1 | Large |
-| Bugbear | 1 | Medium |
-| Copper Dragon Wyrmling | 1 | Medium |
-| Death Dog | 1 | Medium |
-| Dire Wolf | 1 | Large |
-| Dryad | 1 | Medium |
-| Duergar | 1 | Medium |
-| Giant Eagle | 1 | Large |
-| Giant Hyena | 1 | Large |
-| Giant Octopus | 1 | Large |
-| Giant Spider | 1 | Large |
-| Giant Toad | 1 | Large |
-| Giant Vulture | 1 | Large |
-| Harpy | 1 | Medium |
-| Hippogriff | 1 | Large |
-| Imp | 1 | Tiny |
-| Lion | 1 | Large |
-| Quasit | 1 | Tiny |
-| Spy | 1 | Medium |
-| Swarm of Quippers | 1 | Medium |
-| Tiger | 1 | Large |
-
-### CR 2 – 3 — 25 gp
-
-| Creature | CR | Size |
-| --- | --- | --- |
-| Ankheg | 2 | Large |
-| Awakened Tree | 2 | Huge |
-| Azer | 2 | Medium |
-| Bandit Captain | 2 | Medium |
-| Berserker | 2 | Medium |
-| Black Dragon Wyrmling | 2 | Medium |
-| Bronze Dragon Wyrmling | 2 | Medium |
-| Centaur | 2 | Large |
-| Cult Fanatic | 2 | Medium |
-| Druid | 2 | Medium |
-| Ettercap | 2 | Medium |
-| Gargoyle | 2 | Medium |
-| Gelatinous Cube | 2 | Large |
-| Giant Boar | 2 | Large |
-| Giant Constrictor Snake | 2 | Huge |
-| Giant Elk | 2 | Huge |
-| Gibbering Mouther | 2 | Medium |
-| Green Dragon Wyrmling | 2 | Medium |
-| Grick | 2 | Medium |
-| Griffon | 2 | Large |
-| Hunter Shark | 2 | Large |
-| Merrow | 2 | Large |
-| Mimic | 2 | Medium |
-| Ochre Jelly | 2 | Large |
-| Ogre | 2 | Large |
-| Pegasus | 2 | Large |
-| Plesiosaurus | 2 | Large |
-| Polar Bear | 2 | Large |
-| Priest | 2 | Medium |
-| Rhinoceros | 2 | Large |
-| Rug of Smothering | 2 | Large |
-| Saber-Toothed Tiger | 2 | Large |
-| Sea Hag | 2 | Medium |
-| Silver Dragon Wyrmling | 2 | Medium |
-| Swarm of Poisonous Snakes | 2 | Medium |
-| Wererat, Human Form | 2 | Medium |
-| Wererat, Hybrid Form | 2 | Medium |
-| Wererat, Rat Form | 2 | Medium |
-| White Dragon Wyrmling | 2 | Medium |
-| Basilisk | 3 | Medium |
-| Bearded Devil | 3 | Medium |
-| Blue Dragon Wyrmling | 3 | Medium |
-| Doppelganger | 3 | Medium |
-| Giant Scorpion | 3 | Large |
-| Gold Dragon Wyrmling | 3 | Medium |
-| Green Hag | 3 | Medium |
-| Hell Hound | 3 | Medium |
-| Killer Whale | 3 | Huge |
-| Knight | 3 | Medium |
-| Manticore | 3 | Large |
-| Minotaur | 3 | Large |
-| Nightmare | 3 | Large |
-| Owlbear | 3 | Large |
-| Phase Spider | 3 | Large |
-| Veteran | 3 | Medium |
-| Werewolf, Human Form | 3 | Medium |
-| Werewolf, Hybrid Form | 3 | Medium |
-| Werewolf, Wolf Form | 3 | Medium |
-| Winter Wolf | 3 | Large |
-
-### CR 4 – 5 — 100 gp
-
-| Creature | CR | Size |
-| --- | --- | --- |
-| Black Pudding | 4 | Large |
-| Chuul | 4 | Large |
-| Couatl | 4 | Medium |
-| Elephant | 4 | Huge |
-| Ettin | 4 | Large |
-| Lamia | 4 | Large |
-| Red Dragon Wyrmling | 4 | Medium |
-| Succubus/Incubus | 4 | Medium |
-| Wereboar, Boar Form | 4 | Medium |
-| Wereboar, Human Form | 4 | Medium |
-| Wereboar, Hybrid Form | 4 | Medium |
-| Weretiger, Human Form | 4 | Medium |
-| Weretiger, Hybrid Form | 4 | Medium |
-| Weretiger, Tiger Form | 4 | Medium |
-| Air Elemental | 5 | Large |
-| Barbed Devil | 5 | Medium |
-| Bulette | 5 | Large |
-| Earth Elemental | 5 | Large |
-| Fire Elemental | 5 | Large |
-| Flesh Golem | 5 | Medium |
-| Giant Crocodile | 5 | Huge |
-| Giant Shark | 5 | Huge |
-| Gladiator | 5 | Medium |
-| Gorgon | 5 | Large |
-| Half-Red Dragon Veteran | 5 | Medium |
-| Hill Giant | 5 | Huge |
-| Night Hag | 5 | Medium |
-| Otyugh | 5 | Large |
-| Roper | 5 | Large |
-| Salamander | 5 | Large |
-| Shambling Mound | 5 | Large |
-| Triceratops | 5 | Huge |
-| Troll | 5 | Large |
-| Unicorn | 5 | Large |
-| Water Elemental | 5 | Large |
-| Werebear, Bear Form | 5 | Medium |
-| Werebear, Human Form | 5 | Medium |
-| Werebear, Hybrid Form | 5 | Medium |
-| Xorn | 5 | Medium |
-
-### CR 6 – 8 — 400 gp
-
-| Creature | CR | Size |
-| --- | --- | --- |
-| Chimera | 6 | Large |
-| Drider | 6 | Large |
-| Invisible Stalker | 6 | Medium |
-| Mage | 6 | Medium |
-| Mammoth | 6 | Huge |
-| Medusa | 6 | Medium |
-| Vrock | 6 | Large |
-| Wyvern | 6 | Large |
-| Young Brass Dragon | 6 | Large |
-| Young White Dragon | 6 | Large |
-| Giant Ape | 7 | Huge |
-| Oni | 7 | Large |
-| Shield Guardian | 7 | Large |
-| Stone Giant | 7 | Huge |
-| Young Black Dragon | 7 | Large |
-| Young Copper Dragon | 7 | Large |
-| Assassin | 8 | Medium |
-| Chain Devil | 8 | Medium |
-| Cloaker | 8 | Large |
-| Frost Giant | 8 | Huge |
-| Hezrou | 8 | Large |
-| Hydra | 8 | Huge |
-| Spirit Naga | 8 | Large |
-| Tyrannosaurus Rex | 8 | Huge |
-| Young Bronze Dragon | 8 | Large |
-| Young Green Dragon | 8 | Large |
-
-### CR 9 – 11 — 1,200 gp
-
-| Creature | CR | Size |
-| --- | --- | --- |
-| Bone Devil | 9 | Large |
-| Clay Golem | 9 | Large |
-| Cloud Giant | 9 | Huge |
-| Fire Giant | 9 | Huge |
-| Glabrezu | 9 | Large |
-| Treant | 9 | Huge |
-| Young Blue Dragon | 9 | Large |
-| Young Silver Dragon | 9 | Large |
-| Aboleth | 10 | Large |
-| Deva | 10 | Medium |
-| Guardian Naga | 10 | Large |
-| Stone Golem | 10 | Large |
-| Young Gold Dragon | 10 | Large |
-| Young Red Dragon | 10 | Large |
-| Behir | 11 | Huge |
-| Djinni | 11 | Large |
-| Efreeti | 11 | Large |
-| Gynosphinx | 11 | Large |
-| Horned Devil | 11 | Large |
-| Remorhaz | 11 | Huge |
-| Roc | 11 | Gargantuan |
-
-### CR 12 – 14 — 4,000 gp
-
-| Creature | CR | Size |
-| --- | --- | --- |
-| Archmage | 12 | Medium |
-| Erinyes | 12 | Medium |
-| Adult Brass Dragon | 13 | Huge |
-| Adult White Dragon | 13 | Huge |
-| Nalfeshnee | 13 | Large |
-| Rakshasa | 13 | Medium |
-| Storm Giant | 13 | Huge |
-| Adult Black Dragon | 14 | Huge |
-| Adult Copper Dragon | 14 | Huge |
-| Ice Devil | 14 | Large |
-
-### CR 15 – 17 — 12,000 gp
-
-| Creature | CR | Size |
-| --- | --- | --- |
-| Adult Bronze Dragon | 15 | Huge |
-| Adult Green Dragon | 15 | Huge |
-| Purple Worm | 15 | Gargantuan |
-| Adult Blue Dragon | 16 | Huge |
-| Adult Silver Dragon | 16 | Huge |
-| Iron Golem | 16 | Large |
-| Marilith | 16 | Large |
-| Planetar | 16 | Large |
-| Adult Gold Dragon | 17 | Huge |
-| Adult Red Dragon | 17 | Huge |
-| Androsphinx | 17 | Large |
-| Dragon Turtle | 17 | Gargantuan |
-
-### CR 18 – 21 — 40,000 gp
-
-| Creature | CR | Size |
-| --- | --- | --- |
-| Balor | 19 | Huge |
-| Ancient Brass Dragon | 20 | Gargantuan |
-| Ancient White Dragon | 20 | Gargantuan |
-| Pit Fiend | 20 | Large |
-| Ancient Black Dragon | 21 | Gargantuan |
-| Ancient Copper Dragon | 21 | Gargantuan |
-| Solar | 21 | Large |
-
-### CR 22 – 24 — 90,000 gp
-
-| Creature | CR | Size |
-| --- | --- | --- |
-| Ancient Bronze Dragon | 22 | Gargantuan |
-| Ancient Green Dragon | 22 | Gargantuan |
-| Ancient Blue Dragon | 23 | Gargantuan |
-| Ancient Silver Dragon | 23 | Gargantuan |
-| Kraken | 23 | Gargantuan |
-| Ancient Gold Dragon | 24 | Gargantuan |
-| Ancient Red Dragon | 24 | Gargantuan |
-
-### CR 25+ — 250,000 gp
-
-| Creature | CR | Size |
-| --- | --- | --- |
-| Tarrasque | 30 | Gargantuan |
+| Aboleth | Large | 6,280 gp |
+| Acolyte | Medium | 1 gp |
+| Adult Black Dragon | Huge | 14,081 gp |
+| Adult Blue Dragon | Huge | 19,401 gp |
+| Adult Brass Dragon | Huge | 11,787 gp |
+| Adult Bronze Dragon | Huge | 16,617 gp |
+| Adult Copper Dragon | Huge | 14,081 gp |
+| Adult Gold Dragon | Huge | 22,440 gp |
+| Adult Green Dragon | Huge | 16,617 gp |
+| Adult Red Dragon | Huge | 22,440 gp |
+| Adult Silver Dragon | Huge | 19,401 gp |
+| Adult White Dragon | Huge | 11,787 gp |
+| Air Elemental | Large | 1,190 gp |
+| Ancient Black Dragon | Gargantuan | 37,262 gp |
+| Ancient Blue Dragon | Gargantuan | 46,354 gp |
+| Ancient Brass Dragon | Gargantuan | 33,145 gp |
+| Ancient Bronze Dragon | Gargantuan | 41,663 gp |
+| Ancient Copper Dragon | Gargantuan | 37,262 gp |
+| Ancient Gold Dragon | Gargantuan | 51,339 gp |
+| Ancient Green Dragon | Gargantuan | 41,663 gp |
+| Ancient Red Dragon | Gargantuan | 51,339 gp |
+| Ancient Silver Dragon | Gargantuan | 46,354 gp |
+| Ancient White Dragon | Gargantuan | 33,145 gp |
+| Androsphinx | Large | 22,440 gp |
+| Animated Armor | Medium | 25 gp |
+| Ankheg | Large | 132 gp |
+| Ape | Medium | 5 gp |
+| Archmage | Medium | 9,727 gp |
+| Assassin | Medium | 3,676 gp |
+| Awakened Shrub | Small | 1 gp |
+| Awakened Tree | Huge | 132 gp |
+| Axe Beak | Large | 1 gp |
+| Azer | Medium | 132 gp |
+| Baboon | Small | 1 gp |
+| Badger | Tiny | 1 gp |
+| Balor | Huge | 29,305 gp |
+| Bandit | Medium | 1 gp |
+| Bandit Captain | Medium | 132 gp |
+| Barbed Devil | Medium | 1,190 gp |
+| Basilisk | Medium | 349 gp |
+| Bat | Tiny | 1 gp |
+| Bearded Devil | Medium | 349 gp |
+| Behir | Huge | 7,894 gp |
+| Berserker | Medium | 132 gp |
+| Black Bear | Medium | 5 gp |
+| Black Dragon Wyrmling | Medium | 132 gp |
+| Black Pudding | Large | 696 gp |
+| Blink Dog | Medium | 1 gp |
+| Blood Hawk | Small | 1 gp |
+| Blue Dragon Wyrmling | Medium | 349 gp |
+| Boar | Medium | 1 gp |
+| Bone Devil | Large | 4,877 gp |
+| Brass Dragon Wyrmling | Medium | 25 gp |
+| Bronze Dragon Wyrmling | Medium | 132 gp |
+| Brown Bear | Large | 25 gp |
+| Bugbear | Medium | 25 gp |
+| Bulette | Large | 1,190 gp |
+| Camel | Large | 1 gp |
+| Cat | Tiny | 1 gp |
+| Centaur | Large | 132 gp |
+| Chain Devil | Medium | 3,676 gp |
+| Chimera | Large | 1,843 gp |
+| Chuul | Large | 696 gp |
+| Clay Golem | Large | 4,877 gp |
+| Cloaker | Large | 3,676 gp |
+| Cloud Giant | Huge | 4,877 gp |
+| Cockatrice | Small | 5 gp |
+| Commoner | Medium | 1 gp |
+| Constrictor Snake | Large | 1 gp |
+| Copper Dragon Wyrmling | Medium | 25 gp |
+| Couatl | Medium | 696 gp |
+| Crab | Tiny | 1 gp |
+| Crocodile | Large | 5 gp |
+| Cult Fanatic | Medium | 132 gp |
+| Cultist | Medium | 1 gp |
+| Darkmantle | Small | 5 gp |
+| Death Dog | Medium | 25 gp |
+| Deep Gnome (Svirfneblin) | Small | 5 gp |
+| Deer | Medium | 1 gp |
+| Deva | Medium | 6,280 gp |
+| Dire Wolf | Large | 25 gp |
+| Djinni | Large | 7,894 gp |
+| Doppelganger | Medium | 349 gp |
+| Draft Horse | Large | 1 gp |
+| Dragon Turtle | Gargantuan | 22,440 gp |
+| Dretch | Small | 1 gp |
+| Drider | Large | 1,843 gp |
+| Drow | Medium | 1 gp |
+| Druid | Medium | 132 gp |
+| Dryad | Medium | 25 gp |
+| Duergar | Medium | 25 gp |
+| Dust Mephit | Small | 5 gp |
+| Eagle | Small | 1 gp |
+| Earth Elemental | Large | 1,190 gp |
+| Efreeti | Large | 7,894 gp |
+| Elephant | Huge | 696 gp |
+| Elk | Large | 1 gp |
+| Erinyes | Medium | 9,727 gp |
+| Ettercap | Medium | 132 gp |
+| Ettin | Large | 696 gp |
+| Fire Elemental | Large | 1,190 gp |
+| Fire Giant | Huge | 4,877 gp |
+| Flesh Golem | Medium | 1,190 gp |
+| Flying Snake | Tiny | 1 gp |
+| Flying Sword | Small | 1 gp |
+| Frog | Tiny | 1 gp |
+| Frost Giant | Huge | 3,676 gp |
+| Gargoyle | Medium | 132 gp |
+| Gelatinous Cube | Large | 132 gp |
+| Giant Ape | Huge | 2,668 gp |
+| Giant Badger | Medium | 1 gp |
+| Giant Bat | Large | 1 gp |
+| Giant Boar | Large | 132 gp |
+| Giant Centipede | Small | 1 gp |
+| Giant Constrictor Snake | Huge | 132 gp |
+| Giant Crab | Medium | 1 gp |
+| Giant Crocodile | Huge | 1,190 gp |
+| Giant Eagle | Large | 25 gp |
+| Giant Elk | Huge | 132 gp |
+| Giant Fire Beetle | Small | 1 gp |
+| Giant Frog | Medium | 1 gp |
+| Giant Goat | Large | 5 gp |
+| Giant Hyena | Large | 25 gp |
+| Giant Lizard | Large | 1 gp |
+| Giant Octopus | Large | 25 gp |
+| Giant Owl | Large | 1 gp |
+| Giant Poisonous Snake | Medium | 1 gp |
+| Giant Rat | Small | 1 gp |
+| Giant Rat (Diseased) | Small | 1 gp |
+| Giant Scorpion | Large | 349 gp |
+| Giant Sea Horse | Large | 5 gp |
+| Giant Shark | Huge | 1,190 gp |
+| Giant Spider | Large | 25 gp |
+| Giant Toad | Large | 25 gp |
+| Giant Vulture | Large | 25 gp |
+| Giant Wasp | Medium | 5 gp |
+| Giant Weasel | Medium | 1 gp |
+| Giant Wolf Spider | Medium | 1 gp |
+| Gibbering Mouther | Medium | 132 gp |
+| Glabrezu | Large | 4,877 gp |
+| Gladiator | Medium | 1,190 gp |
+| Gnoll | Medium | 5 gp |
+| Goat | Medium | 1 gp |
+| Goblin | Small | 1 gp |
+| Gold Dragon Wyrmling | Medium | 349 gp |
+| Gorgon | Large | 1,190 gp |
+| Gray Ooze | Medium | 5 gp |
+| Green Dragon Wyrmling | Medium | 132 gp |
+| Green Hag | Medium | 349 gp |
+| Grick | Medium | 132 gp |
+| Griffon | Large | 132 gp |
+| Grimlock | Medium | 1 gp |
+| Guard | Medium | 1 gp |
+| Guardian Naga | Large | 6,280 gp |
+| Gynosphinx | Large | 7,894 gp |
+| Half-Red Dragon Veteran | Medium | 1,190 gp |
+| Harpy | Medium | 25 gp |
+| Hawk | Tiny | 1 gp |
+| Hell Hound | Medium | 349 gp |
+| Hezrou | Large | 3,676 gp |
+| Hill Giant | Huge | 1,190 gp |
+| Hippogriff | Large | 25 gp |
+| Hobgoblin | Medium | 5 gp |
+| Homunculus | Tiny | 1 gp |
+| Horned Devil | Large | 7,894 gp |
+| Hunter Shark | Large | 132 gp |
+| Hydra | Huge | 3,676 gp |
+| Hyena | Medium | 1 gp |
+| Ice Devil | Large | 14,081 gp |
+| Ice Mephit | Small | 5 gp |
+| Imp | Tiny | 25 gp |
+| Invisible Stalker | Medium | 1,843 gp |
+| Iron Golem | Large | 19,401 gp |
+| Jackal | Small | 1 gp |
+| Killer Whale | Huge | 349 gp |
+| Knight | Medium | 349 gp |
+| Kobold | Small | 1 gp |
+| Kraken | Gargantuan | 46,354 gp |
+| Lamia | Large | 696 gp |
+| Lemure | Medium | 1 gp |
+| Lion | Large | 25 gp |
+| Lizard | Tiny | 1 gp |
+| Lizardfolk | Medium | 5 gp |
+| Mage | Medium | 1,843 gp |
+| Magma Mephit | Small | 5 gp |
+| Magmin | Small | 5 gp |
+| Mammoth | Huge | 1,843 gp |
+| Manticore | Large | 349 gp |
+| Marilith | Large | 19,401 gp |
+| Mastiff | Medium | 1 gp |
+| Medusa | Medium | 1,843 gp |
+| Merfolk | Medium | 1 gp |
+| Merrow | Large | 132 gp |
+| Mimic | Medium | 132 gp |
+| Minotaur | Large | 349 gp |
+| Mule | Medium | 1 gp |
+| Nalfeshnee | Large | 11,787 gp |
+| Night Hag | Medium | 1,190 gp |
+| Nightmare | Large | 349 gp |
+| Noble | Medium | 1 gp |
+| Ochre Jelly | Large | 132 gp |
+| Octopus | Small | 1 gp |
+| Ogre | Large | 132 gp |
+| Oni | Large | 2,668 gp |
+| Orc | Medium | 5 gp |
+| Otyugh | Large | 1,190 gp |
+| Owl | Tiny | 1 gp |
+| Owlbear | Large | 349 gp |
+| Panther | Medium | 1 gp |
+| Pegasus | Large | 132 gp |
+| Phase Spider | Large | 349 gp |
+| Pit Fiend | Large | 33,145 gp |
+| Planetar | Large | 19,401 gp |
+| Plesiosaurus | Large | 132 gp |
+| Poisonous Snake | Tiny | 1 gp |
+| Polar Bear | Large | 132 gp |
+| Pony | Medium | 1 gp |
+| Priest | Medium | 132 gp |
+| Pseudodragon | Tiny | 1 gp |
+| Purple Worm | Gargantuan | 16,617 gp |
+| Quasit | Tiny | 25 gp |
+| Quipper | Tiny | 1 gp |
+| Rakshasa | Medium | 11,787 gp |
+| Rat | Tiny | 1 gp |
+| Raven | Tiny | 1 gp |
+| Red Dragon Wyrmling | Medium | 696 gp |
+| Reef Shark | Medium | 5 gp |
+| Remorhaz | Huge | 7,894 gp |
+| Rhinoceros | Large | 132 gp |
+| Riding Horse | Large | 1 gp |
+| Roc | Gargantuan | 7,894 gp |
+| Roper | Large | 1,190 gp |
+| Rug of Smothering | Large | 132 gp |
+| Rust Monster | Medium | 5 gp |
+| Saber-Toothed Tiger | Large | 132 gp |
+| Sahuagin | Medium | 5 gp |
+| Salamander | Large | 1,190 gp |
+| Satyr | Medium | 5 gp |
+| Scorpion | Tiny | 1 gp |
+| Scout | Medium | 5 gp |
+| Sea Hag | Medium | 132 gp |
+| Sea Horse | Tiny | 1 gp |
+| Shambling Mound | Large | 1,190 gp |
+| Shield Guardian | Large | 2,668 gp |
+| Shrieker | Medium | 1 gp |
+| Silver Dragon Wyrmling | Medium | 132 gp |
+| Solar | Large | 37,262 gp |
+| Spider | Tiny | 1 gp |
+| Spirit Naga | Large | 3,676 gp |
+| Sprite | Tiny | 1 gp |
+| Spy | Medium | 25 gp |
+| Steam Mephit | Small | 1 gp |
+| Stirge | Tiny | 1 gp |
+| Stone Giant | Huge | 2,668 gp |
+| Stone Golem | Large | 6,280 gp |
+| Storm Giant | Huge | 11,787 gp |
+| Succubus/Incubus | Medium | 696 gp |
+| Swarm of Bats | Medium | 1 gp |
+| Swarm of Beetles | Medium | 5 gp |
+| Swarm of Centipedes | Medium | 5 gp |
+| Swarm of Insects | Medium | 5 gp |
+| Swarm of Poisonous Snakes | Medium | 132 gp |
+| Swarm of Quippers | Medium | 25 gp |
+| Swarm of Rats | Medium | 1 gp |
+| Swarm of Ravens | Medium | 1 gp |
+| Swarm of Spiders | Medium | 5 gp |
+| Swarm of Wasps | Medium | 5 gp |
+| Tarrasque | Gargantuan | 87,706 gp |
+| Thug | Medium | 5 gp |
+| Tiger | Large | 25 gp |
+| Treant | Huge | 4,877 gp |
+| Tribal Warrior | Medium | 1 gp |
+| Triceratops | Huge | 1,190 gp |
+| Troll | Large | 1,190 gp |
+| Tyrannosaurus Rex | Huge | 3,676 gp |
+| Unicorn | Large | 1,190 gp |
+| Veteran | Medium | 349 gp |
+| Violet Fungus | Medium | 1 gp |
+| Vrock | Large | 1,843 gp |
+| Vulture | Medium | 1 gp |
+| Warhorse | Large | 5 gp |
+| Water Elemental | Large | 1,190 gp |
+| Weasel | Tiny | 1 gp |
+| Werebear, Bear Form | Medium | 1,190 gp |
+| Werebear, Human Form | Medium | 1,190 gp |
+| Werebear, Hybrid Form | Medium | 1,190 gp |
+| Wereboar, Boar Form | Medium | 696 gp |
+| Wereboar, Human Form | Medium | 696 gp |
+| Wereboar, Hybrid Form | Medium | 696 gp |
+| Wererat, Human Form | Medium | 132 gp |
+| Wererat, Hybrid Form | Medium | 132 gp |
+| Wererat, Rat Form | Medium | 132 gp |
+| Weretiger, Human Form | Medium | 696 gp |
+| Weretiger, Hybrid Form | Medium | 696 gp |
+| Weretiger, Tiger Form | Medium | 696 gp |
+| Werewolf, Human Form | Medium | 349 gp |
+| Werewolf, Hybrid Form | Medium | 349 gp |
+| Werewolf, Wolf Form | Medium | 349 gp |
+| White Dragon Wyrmling | Medium | 132 gp |
+| Winter Wolf | Large | 349 gp |
+| Wolf | Medium | 1 gp |
+| Worg | Large | 5 gp |
+| Wyvern | Large | 1,843 gp |
+| Xorn | Medium | 1,190 gp |
+| Young Black Dragon | Large | 2,668 gp |
+| Young Blue Dragon | Large | 4,877 gp |
+| Young Brass Dragon | Large | 1,843 gp |
+| Young Bronze Dragon | Large | 3,676 gp |
+| Young Copper Dragon | Large | 2,668 gp |
+| Young Gold Dragon | Large | 6,280 gp |
+| Young Green Dragon | Large | 3,676 gp |
+| Young Red Dragon | Large | 6,280 gp |
+| Young Silver Dragon | Large | 4,877 gp |
+| Young White Dragon | Large | 1,843 gp |
 
 ---
 

@@ -1,8 +1,8 @@
 // Regenerates public/bounties.md from the D&D 5e SRD API.
 //
-// Every non-undead creature is listed and paid a flat bounty based on its
-// challenge-rating bracket. All undead are collapsed into a single category
-// (the guild pays for undead only against posted quests, never by the head).
+// Every non-undead creature is listed with a bounty derived from its
+// challenge rating. All undead are collapsed into a single category (the
+// guild pays for undead only against posted quests, never by the head).
 //
 // Run with:  node scripts/generate-bounties.mjs
 
@@ -12,31 +12,16 @@ import { dirname, join } from "node:path";
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "bounties.md");
 
-// Flat bounty per challenge-rating bracket. min/max are inclusive CR values.
-const BRACKETS = [
-  { label: "CR 0", min: 0, max: 0, bounty: "5 sp" },
-  { label: "CR 1/8 – 1/4", min: 0.125, max: 0.25, bounty: "1 gp" },
-  { label: "CR 1/2 – 1", min: 0.5, max: 1, bounty: "5 gp" },
-  { label: "CR 2 – 3", min: 2, max: 3, bounty: "25 gp" },
-  { label: "CR 4 – 5", min: 4, max: 5, bounty: "100 gp" },
-  { label: "CR 6 – 8", min: 6, max: 8, bounty: "400 gp" },
-  { label: "CR 9 – 11", min: 9, max: 11, bounty: "1,200 gp" },
-  { label: "CR 12 – 14", min: 12, max: 14, bounty: "4,000 gp" },
-  { label: "CR 15 – 17", min: 15, max: 17, bounty: "12,000 gp" },
-  { label: "CR 18 – 21", min: 18, max: 21, bounty: "40,000 gp" },
-  { label: "CR 22 – 24", min: 22, max: 24, bounty: "90,000 gp" },
-  { label: "CR 25+", min: 25, max: 99, bounty: "250,000 gp" },
-];
+// Bounty scales with challenge rating: 25 * CR^2.4, rounded, floored at 1 gp.
+const BOUNTY_COEFFICIENT = 25;
+const BOUNTY_EXPONENT = 2.4;
 
-function formatCr(cr) {
-  if (cr === 0.125) return "1/8";
-  if (cr === 0.25) return "1/4";
-  if (cr === 0.5) return "1/2";
-  return String(cr);
+function bountyGp(cr) {
+  return Math.max(1, Math.round(BOUNTY_COEFFICIENT * cr ** BOUNTY_EXPONENT));
 }
 
-function bracketFor(cr) {
-  return BRACKETS.find((b) => cr >= b.min && cr <= b.max) ?? null;
+function formatGp(n) {
+  return `${n.toLocaleString("en-US")} gp`;
 }
 
 async function fetchMonsters() {
@@ -55,7 +40,9 @@ async function fetchMonsters() {
 
 function buildMarkdown(monsters) {
   const undead = monsters.filter((m) => m.type === "undead");
-  const rest = monsters.filter((m) => m.type !== "undead");
+  const rest = monsters
+    .filter((m) => m.type !== "undead")
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const lines = [];
   lines.push("# Bounty Table");
@@ -94,33 +81,20 @@ function buildMarkdown(monsters) {
   lines.push("");
   lines.push("---");
   lines.push("");
-  lines.push("## Bounty Rates by Challenge Rating");
+  lines.push("## Bounty Rates");
   lines.push("");
   lines.push(
-    `Every non-undead creature the guild has catalogued (${rest.length} in total), sorted by threat. The bounty is a flat rate set by the creature's challenge-rating bracket.`
+    `Every non-undead creature the guild has catalogued (${rest.length} in total), listed alphabetically. The bounty reflects the threat a creature poses -- the deadlier it is, the more its kill is worth.`
   );
   lines.push("");
-
-  for (const bracket of BRACKETS) {
-    const inBracket = rest
-      .filter((m) => bracketFor(m.challenge_rating) === bracket)
-      .sort(
-        (a, b) =>
-          a.challenge_rating - b.challenge_rating ||
-          a.name.localeCompare(b.name)
-      );
-    if (inBracket.length === 0) continue;
-
-    lines.push(`### ${bracket.label} — ${bracket.bounty}`);
-    lines.push("");
-    lines.push("| Creature | CR | Size |");
-    lines.push("| --- | --- | --- |");
-    for (const m of inBracket) {
-      lines.push(`| ${m.name} | ${formatCr(m.challenge_rating)} | ${m.size} |`);
-    }
-    lines.push("");
+  lines.push("| Creature | Size | Bounty |");
+  lines.push("| --- | --- | --- |");
+  for (const m of rest) {
+    lines.push(
+      `| ${m.name} | ${m.size} | ${formatGp(bountyGp(m.challenge_rating))} |`
+    );
   }
-
+  lines.push("");
   lines.push("---");
   lines.push("");
   lines.push("## Rules");
