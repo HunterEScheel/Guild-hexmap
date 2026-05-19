@@ -1,8 +1,10 @@
 // Regenerates public/bounties.md from the D&D 5e SRD API.
 //
-// Every non-undead creature is listed with a bounty derived from its
-// challenge rating. All undead are collapsed into a single category (the
-// guild pays for undead only against posted quests, never by the head).
+// Every catalogued creature is listed with a bounty derived from its
+// challenge rating. Two groups are excluded: undead (collapsed into a single
+// quest-only category) and human NPCs -- the "any race" humanoid stat blocks
+// like Commoner, Guard, Bandit and Noble -- because the guild does not pay
+// bounties on people.
 //
 // Run with:  node scripts/generate-bounties.mjs
 
@@ -39,7 +41,7 @@ async function fetchMonsters() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       query:
-        "{ monsters(limit: 500) { index name size type challenge_rating } }",
+        "{ monsters(limit: 500) { index name size type subtype challenge_rating } }",
     }),
   });
   if (!res.ok) throw new Error(`API request failed: ${res.status}`);
@@ -49,8 +51,11 @@ async function fetchMonsters() {
 
 function buildMarkdown(monsters) {
   const undead = monsters.filter((m) => m.type === "undead");
+  // "any race" humanoids are the human NPC stat blocks (Commoner, Guard,
+  // Bandit, Noble, ...). The guild does not bounty people, so they are dropped.
+  const isHumanNpc = (m) => m.type === "humanoid" && m.subtype === "any race";
   const rest = monsters
-    .filter((m) => m.type !== "undead")
+    .filter((m) => m.type !== "undead" && !isHumanNpc(m))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const lines = [];
@@ -93,7 +98,7 @@ function buildMarkdown(monsters) {
   lines.push("## Bounty Rates");
   lines.push("");
   lines.push(
-    `Every non-undead creature the guild has catalogued (${rest.length} in total). Search by name or sort any column. The bounty reflects the threat a creature poses -- the deadlier it is, the more its kill is worth.`
+    `Every creature the guild pays a bounty on (${rest.length} in total). Search by name or sort any column; the bounty reflects the threat a creature poses. People are not listed -- the guild bounties monsters, not persons, and will not pay for murder.`
   );
   lines.push("");
   lines.push("| Creature | Size | Bounty |");

@@ -24,12 +24,11 @@ Incorporeal creatures leave no body. The guild cannot verify a kill without proo
 
 ## Bounty Rates
 
-Every non-undead creature the guild has catalogued (314 in total). Search by name or sort any column. The bounty reflects the threat a creature poses -- the deadlier it is, the more its kill is worth.
+Every creature the guild pays a bounty on (293 in total). Search by name or sort any column; the bounty reflects the threat a creature poses. People are not listed -- the guild bounties monsters, not persons, and will not pay for murder.
 
 | Creature | Size | Bounty |
 | --- | --- | --- |
 | Aboleth | Large | 6,280 gp |
-| Acolyte | Medium | 9 sp |
 | Adult Black Dragon | Huge | 14,081 gp |
 | Adult Blue Dragon | Huge | 19,401 gp |
 | Adult Brass Dragon | Huge | 11,787 gp |
@@ -55,8 +54,6 @@ Every non-undead creature the guild has catalogued (314 in total). Search by nam
 | Animated Armor | Medium | 25 gp |
 | Ankheg | Large | 132 gp |
 | Ape | Medium | 5 gp |
-| Archmage | Medium | 9,727 gp |
-| Assassin | Medium | 3,676 gp |
 | Awakened Shrub | Small | 1 cp |
 | Awakened Tree | Huge | 132 gp |
 | Axe Beak | Large | 9 sp |
@@ -64,14 +61,11 @@ Every non-undead creature the guild has catalogued (314 in total). Search by nam
 | Baboon | Small | 1 cp |
 | Badger | Tiny | 1 cp |
 | Balor | Huge | 29,305 gp |
-| Bandit | Medium | 2 sp |
-| Bandit Captain | Medium | 132 gp |
 | Barbed Devil | Medium | 1,190 gp |
 | Basilisk | Medium | 349 gp |
 | Bat | Tiny | 1 cp |
 | Bearded Devil | Medium | 349 gp |
 | Behir | Huge | 7,894 gp |
-| Berserker | Medium | 132 gp |
 | Black Bear | Medium | 5 gp |
 | Black Dragon Wyrmling | Medium | 132 gp |
 | Black Pudding | Large | 696 gp |
@@ -95,14 +89,11 @@ Every non-undead creature the guild has catalogued (314 in total). Search by nam
 | Cloaker | Large | 3,676 gp |
 | Cloud Giant | Huge | 4,877 gp |
 | Cockatrice | Small | 5 gp |
-| Commoner | Medium | 1 cp |
 | Constrictor Snake | Large | 9 sp |
 | Copper Dragon Wyrmling | Medium | 25 gp |
 | Couatl | Medium | 696 gp |
 | Crab | Tiny | 1 cp |
 | Crocodile | Large | 5 gp |
-| Cult Fanatic | Medium | 132 gp |
-| Cultist | Medium | 2 sp |
 | Darkmantle | Small | 5 gp |
 | Death Dog | Medium | 25 gp |
 | Deep Gnome (Svirfneblin) | Small | 5 gp |
@@ -116,7 +107,6 @@ Every non-undead creature the guild has catalogued (314 in total). Search by nam
 | Dretch | Small | 9 sp |
 | Drider | Large | 1,843 gp |
 | Drow | Medium | 9 sp |
-| Druid | Medium | 132 gp |
 | Dryad | Medium | 25 gp |
 | Duergar | Medium | 25 gp |
 | Dust Mephit | Small | 5 gp |
@@ -168,7 +158,6 @@ Every non-undead creature the guild has catalogued (314 in total). Search by nam
 | Giant Wolf Spider | Medium | 9 sp |
 | Gibbering Mouther | Medium | 132 gp |
 | Glabrezu | Large | 4,877 gp |
-| Gladiator | Medium | 1,190 gp |
 | Gnoll | Medium | 5 gp |
 | Goat | Medium | 1 cp |
 | Goblin | Small | 9 sp |
@@ -180,7 +169,6 @@ Every non-undead creature the guild has catalogued (314 in total). Search by nam
 | Grick | Medium | 132 gp |
 | Griffon | Large | 132 gp |
 | Grimlock | Medium | 9 sp |
-| Guard | Medium | 2 sp |
 | Guardian Naga | Large | 6,280 gp |
 | Gynosphinx | Large | 7,894 gp |
 | Half-Red Dragon Veteran | Medium | 1,190 gp |
@@ -203,7 +191,6 @@ Every non-undead creature the guild has catalogued (314 in total). Search by nam
 | Iron Golem | Large | 19,401 gp |
 | Jackal | Small | 1 cp |
 | Killer Whale | Huge | 349 gp |
-| Knight | Medium | 349 gp |
 | Kobold | Small | 2 sp |
 | Kraken | Gargantuan | 46,354 gp |
 | Lamia | Large | 696 gp |
@@ -211,7 +198,6 @@ Every non-undead creature the guild has catalogued (314 in total). Search by nam
 | Lion | Large | 25 gp |
 | Lizard | Tiny | 1 cp |
 | Lizardfolk | Medium | 5 gp |
-| Mage | Medium | 1,843 gp |
 | Magma Mephit | Small | 5 gp |
 | Magmin | Small | 5 gp |
 | Mammoth | Huge | 1,843 gp |
@@ -227,7 +213,6 @@ Every non-undead creature the guild has catalogued (314 in total). Search by nam
 | Nalfeshnee | Large | 11,787 gp |
 | Night Hag | Medium | 1,190 gp |
 | Nightmare | Large | 349 gp |
-| Noble | Medium | 2 sp |
 | Ochre Jelly | Large | 132 gp |
 | Octopus | Small | 1 cp |
 | Ogre | Large | 132 gp |
@@ -245,7 +230,6 @@ Every non-undead creature the guild has catalogued (314 in total). Search by nam
 | Poisonous Snake | Tiny | 2 sp |
 | Polar Bear | Large | 132 gp |
 | Pony | Medium | 2 sp |
-| Priest | Medium | 132 gp |
 | Pseudodragon | Tiny | 9 sp |
 | Purple Worm | Gargantuan | 16,617 gp |
 | Quasit | Tiny | 25 gp |
@@ -267,7 +251,6 @@ Every non-undead creature the guild has catalogued (314 in total). Search by nam
 | Salamander | Large | 1,190 gp |
 | Satyr | Medium | 5 gp |
 | Scorpion | Tiny | 1 cp |
-| Scout | Medium | 5 gp |
 | Sea Hag | Medium | 132 gp |
 | Sea Horse | Tiny | 1 cp |
 | Shambling Mound | Large | 1,190 gp |
@@ -278,7 +261,6 @@ Every non-undead creature the guild has catalogued (314 in total). Search by nam
 | Spider | Tiny | 1 cp |
 | Spirit Naga | Large | 3,676 gp |
 | Sprite | Tiny | 9 sp |
-| Spy | Medium | 25 gp |
 | Steam Mephit | Small | 9 sp |
 | Stirge | Tiny | 2 sp |
 | Stone Giant | Huge | 2,668 gp |
@@ -296,15 +278,12 @@ Every non-undead creature the guild has catalogued (314 in total). Search by nam
 | Swarm of Spiders | Medium | 5 gp |
 | Swarm of Wasps | Medium | 5 gp |
 | Tarrasque | Gargantuan | 87,706 gp |
-| Thug | Medium | 5 gp |
 | Tiger | Large | 25 gp |
 | Treant | Huge | 4,877 gp |
-| Tribal Warrior | Medium | 2 sp |
 | Triceratops | Huge | 1,190 gp |
 | Troll | Large | 1,190 gp |
 | Tyrannosaurus Rex | Huge | 3,676 gp |
 | Unicorn | Large | 1,190 gp |
-| Veteran | Medium | 349 gp |
 | Violet Fungus | Medium | 9 sp |
 | Vrock | Large | 1,843 gp |
 | Vulture | Medium | 1 cp |
