@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { HexGrid } from "./components/HexGrid";
 import { SidePanel } from "./components/SidePanel";
 import { AdminToolbar } from "./components/AdminToolbar";
