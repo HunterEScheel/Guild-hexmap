@@ -12,16 +12,25 @@ import { dirname, join } from "node:path";
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "bounties.md");
 
-// Bounty scales with challenge rating: 25 * CR^2.4, rounded, floored at 1 gp.
+// Bounty scales with challenge rating: 25 * CR^2.4 gp, floored at 1 cp.
 const BOUNTY_COEFFICIENT = 25;
 const BOUNTY_EXPONENT = 2.4;
 
-function bountyGp(cr) {
-  return Math.max(1, Math.round(BOUNTY_COEFFICIENT * cr ** BOUNTY_EXPONENT));
-}
-
-function formatGp(n) {
-  return `${n.toLocaleString("en-US")} gp`;
+// Formats a creature's bounty in the largest sensible coin denomination.
+// 1 gp = 10 sp = 100 cp; sub-gold values drop to silver, then copper.
+function formatBounty(cr) {
+  const copper = Math.max(
+    1,
+    Math.round(BOUNTY_COEFFICIENT * cr ** BOUNTY_EXPONENT * 100)
+  );
+  if (copper >= 100) {
+    return `${Math.round(copper / 100).toLocaleString("en-US")} gp`;
+  }
+  if (copper >= 10) {
+    const sp = Math.round(copper / 10);
+    return sp >= 10 ? "1 gp" : `${sp} sp`;
+  }
+  return `${copper} cp`;
 }
 
 async function fetchMonsters() {
@@ -91,7 +100,7 @@ function buildMarkdown(monsters) {
   lines.push("| --- | --- | --- |");
   for (const m of rest) {
     lines.push(
-      `| ${m.name} | ${m.size} | ${formatGp(bountyGp(m.challenge_rating))} |`
+      `| ${m.name} | ${m.size} | ${formatBounty(m.challenge_rating)} |`
     );
   }
   lines.push("");
