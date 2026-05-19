@@ -13,6 +13,13 @@ create table where not exists hexes (
 -- Migration: Add challenge_tier to hexes
 -- alter table hexes add column challenge_tier integer;
 
+-- Migration: Add scheduled_date to quests
+-- alter table quests add column scheduled_date date;
+
+-- Migration: Add end hex to quests
+-- alter table quests add column end_hex_col integer;
+-- alter table quests add column end_hex_row integer;
+
 -- Quests table
 create table where not exists quests (
   id uuid default gen_random_uuid() primary key,

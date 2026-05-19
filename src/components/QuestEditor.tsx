@@ -42,9 +42,16 @@ export function QuestEditor({
   const [status, setStatus] = useState<QuestStatus>(
     quest?.status ?? "available"
   );
+  const [endCol, setEndCol] = useState(
+    quest?.endHexCol != null ? String(quest.endHexCol) : ""
+  );
+  const [endRow, setEndRow] = useState(
+    quest?.endHexRow != null ? String(quest.endHexRow) : ""
+  );
 
   const handleSave = () => {
     if (!title.trim()) return;
+    const hasEnd = endCol.trim() !== "" && endRow.trim() !== "";
     onSave({
       title: title.trim(),
       description: description.trim(),
@@ -53,7 +60,10 @@ export function QuestEditor({
       status,
       hexCol,
       hexRow,
+      endHexCol: hasEnd ? Number(endCol) : null,
+      endHexRow: hasEnd ? Number(endRow) : null,
       players: quest?.players ?? [],
+      scheduledDate: quest?.scheduledDate ?? null,
     });
   };
 
@@ -210,6 +220,29 @@ export function QuestEditor({
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <label
+              style={{ color: "#9ca3af", fontSize: 12, marginBottom: 4, display: "block" }}
+            >
+              End Hex (optional)
+            </label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                type="number"
+                value={endCol}
+                onChange={(e) => setEndCol(e.target.value)}
+                placeholder="Col"
+                style={{ ...inputStyle, width: "50%" }}
+              />
+              <input
+                type="number"
+                value={endRow}
+                onChange={(e) => setEndRow(e.target.value)}
+                placeholder="Row"
+                style={{ ...inputStyle, width: "50%" }}
+              />
+            </div>
           </div>
         </div>
 

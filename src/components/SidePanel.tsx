@@ -38,7 +38,9 @@ export function SidePanel({
   const canHaveEncounters = terrain !== "allied_city" && terrain !== "unknown";
   const hexQuests = selectedHex
     ? quests.filter(
-        (q) => q.hexCol === selectedHex.col && q.hexRow === selectedHex.row
+        (q) =>
+          (q.hexCol === selectedHex.col && q.hexRow === selectedHex.row) ||
+          (q.endHexCol === selectedHex.col && q.endHexRow === selectedHex.row)
       )
     : [];
 

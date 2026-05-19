@@ -39,5 +39,8 @@ export interface Quest {
   status: QuestStatus;
   hexCol: number;
   hexRow: number;
+  endHexCol: number | null;
+  endHexRow: number | null;
   players: string[];
+  scheduledDate: string | null;
 }

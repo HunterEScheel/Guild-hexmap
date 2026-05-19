@@ -123,7 +123,10 @@ function mapQuest(row: Record<string, unknown>): Quest {
     status: row.status as Quest["status"],
     hexCol: row.hex_col as number,
     hexRow: row.hex_row as number,
+    endHexCol: (row.end_hex_col as number) ?? null,
+    endHexRow: (row.end_hex_row as number) ?? null,
     players: (row.players as string[]) ?? [],
+    scheduledDate: (row.scheduled_date as string) ?? null,
   };
 }
 
@@ -158,7 +161,10 @@ export async function createQuest(quest: Omit<Quest, "id">): Promise<void> {
     status: quest.status,
     hex_col: quest.hexCol,
     hex_row: quest.hexRow,
+    end_hex_col: quest.endHexCol,
+    end_hex_row: quest.endHexRow,
     players: quest.players,
+    scheduled_date: quest.scheduledDate,
   });
 }
 
@@ -174,7 +180,10 @@ export async function updateQuest(
   if (updates.status !== undefined) dbUpdates.status = updates.status;
   if (updates.hexCol !== undefined) dbUpdates.hex_col = updates.hexCol;
   if (updates.hexRow !== undefined) dbUpdates.hex_row = updates.hexRow;
+  if (updates.endHexCol !== undefined) dbUpdates.end_hex_col = updates.endHexCol;
+  if (updates.endHexRow !== undefined) dbUpdates.end_hex_row = updates.endHexRow;
   if (updates.players !== undefined) dbUpdates.players = updates.players;
+  if (updates.scheduledDate !== undefined) dbUpdates.scheduled_date = updates.scheduledDate;
 
   await supabase.from("quests").update(dbUpdates).eq("id", id);
 }
@@ -185,21 +194,26 @@ export async function deleteQuest(id: string): Promise<void> {
 
 export async function joinQuest(
   questId: string,
-  playerName: string
+  playerName: string,
+  scheduledDate?: string
 ): Promise<void> {
   const { data } = await supabase
     .from("quests")
-    .select("players")
+    .select("players, status")
     .eq("id", questId)
     .single();
 
   if (data) {
     const players: string[] = data.players ?? [];
     if (!players.includes(playerName)) {
-      await supabase
-        .from("quests")
-        .update({ players: [...players, playerName] })
-        .eq("id", questId);
+      const updates: Record<string, unknown> = {
+        players: [...players, playerName],
+        status: "in_progress",
+      };
+      if (scheduledDate) {
+        updates.scheduled_date = scheduledDate;
+      }
+      await supabase.from("quests").update(updates).eq("id", questId);
     }
   }
 }
@@ -216,9 +230,12 @@ export async function leaveQuest(
 
   if (data) {
     const players: string[] = data.players ?? [];
-    await supabase
-      .from("quests")
-      .update({ players: players.filter((p) => p !== playerName) })
-      .eq("id", questId);
+    const remaining = players.filter((p) => p !== playerName);
+    const updates: Record<string, unknown> = { players: remaining };
+    if (remaining.length === 0) {
+      updates.status = "available";
+      updates.scheduled_date = null;
+    }
+    await supabase.from("quests").update(updates).eq("id", questId);
   }
 }

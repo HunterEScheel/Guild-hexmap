@@ -27,8 +27,6 @@ export function ActiveQuests({
     const completed: Quest[] = [];
 
     for (const quest of quests) {
-      if (quest.id.startsWith("explore-")) continue;
-
       if (quest.status === "completed") {
         completed.push(quest);
       } else if (quest.status === "in_progress") {
@@ -187,7 +185,9 @@ function QuestSection({
                 paddingLeft: 16,
               }}
             >
-              Hex ({quest.hexCol}, {quest.hexRow})
+              {quest.endHexCol != null && quest.endHexRow != null
+                ? `(${quest.hexCol}, ${quest.hexRow}) → (${quest.endHexCol}, ${quest.endHexRow})`
+                : `Hex (${quest.hexCol}, ${quest.hexRow})`}
             </div>
             <QuestCard
               quest={quest}

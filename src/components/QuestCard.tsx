@@ -102,6 +102,18 @@ export function QuestCard({
         </span>
       </div>
 
+      {quest.scheduledDate && (
+        <div style={{ marginBottom: 6 }}>
+          <span style={{ fontSize: 11, color: "#6b7280" }}>Scheduled: </span>
+          <span style={{ fontSize: 12, color: "#60a5fa" }}>
+            {new Date(quest.scheduledDate + "T00:00:00").toLocaleDateString(
+              undefined,
+              { weekday: "short", month: "short", day: "numeric" }
+            )}
+          </span>
+        </div>
+      )}
+
       {quest.players.length > 0 && (
         <div style={{ marginBottom: 8 }}>
           <span style={{ fontSize: 11, color: "#6b7280" }}>Party: </span>

@@ -7,6 +7,7 @@ import { PlayerNameModal } from "./components/PlayerNameModal";
 import { QuestEditor } from "./components/QuestEditor";
 import { Legend } from "./components/Legend";
 import { BountyBoard } from "./components/BountyBoard";
+import { DatePickerModal } from "./components/DatePickerModal";
 import { ActiveQuests } from "./components/ActiveQuests";
 import {
   useHexData,
@@ -20,7 +21,6 @@ import {
   leaveQuest,
 } from "./hooks/useFirebase";
 import { useAdminMode } from "./hooks/useAdminMode";
-import { hexNeighbors } from "./utils/hexMath";
 import type { ChallengeTier, Quest, TerrainType } from "./types";
 import "./index.css";
 
@@ -31,48 +31,6 @@ function App() {
   const hexes = useHexData();
   const quests = useQuests();
 
-  // Compute exploration hexes: unknown/unmapped hexes adjacent to known terrain
-  const explorationHexes = useMemo(() => {
-    const set = new Set<string>();
-    for (const hex of hexes.values()) {
-      if (hex.terrain === "unknown") continue;
-      for (const neighbor of hexNeighbors(hex.col, hex.row)) {
-        const nKey = `${neighbor.col}_${neighbor.row}`;
-        const neighborHex = hexes.get(nKey);
-        if (!neighborHex || neighborHex.terrain === "unknown") {
-          set.add(nKey);
-        }
-      }
-    }
-    return set;
-  }, [hexes]);
-
-  // Build virtual exploration quests for the side panel
-  const allQuests = useMemo(() => {
-    const virtualQuests: Quest[] = [];
-    for (const key of explorationHexes) {
-      const [colStr, rowStr] = key.split("_");
-      const col = Number(colStr);
-      const row = Number(rowStr);
-      const hasRealQuest = quests.some(
-        (q) => q.hexCol === col && q.hexRow === row && q.status !== "completed"
-      );
-      if (!hasRealQuest) {
-        virtualQuests.push({
-          id: `explore-${key}`,
-          title: "Explore Unknown Territory",
-          description: "Venture into uncharted lands and report your findings.",
-          reward: "50gp",
-          level: "explore",
-          status: "available",
-          hexCol: col,
-          hexRow: row,
-          players: [],
-        });
-      }
-    }
-    return [...quests, ...virtualQuests];
-  }, [quests, explorationHexes]);
 
   // Selection
   const [selectedHex, setSelectedHex] = useState<{
@@ -94,6 +52,10 @@ function App() {
   );
   const [showNameModal, setShowNameModal] = useState(false);
   const [pendingJoinQuestId, setPendingJoinQuestId] = useState<string | null>(
+    null
+  );
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pendingDateQuestId, setPendingDateQuestId] = useState<string | null>(
     null
   );
 
@@ -129,25 +91,27 @@ function App() {
         setShowNameModal(true);
         return;
       }
-      if (questId.startsWith("explore-")) {
-        const virtualQuest = allQuests.find((q) => q.id === questId);
-        if (virtualQuest) {
-          await createQuest({
-            title: virtualQuest.title,
-            description: virtualQuest.description,
-            reward: virtualQuest.reward,
-            level: virtualQuest.level,
-            status: "in_progress",
-            hexCol: virtualQuest.hexCol,
-            hexRow: virtualQuest.hexRow,
-            players: [playerName],
-          });
-        }
+      const quest = quests.find((q) => q.id === questId);
+      if (quest && quest.players.length === 0) {
+        // First player — must pick a date
+        setPendingDateQuestId(questId);
+        setShowDatePicker(true);
         return;
       }
       joinQuest(questId, playerName);
     },
-    [playerName, allQuests]
+    [playerName, quests]
+  );
+
+  const handleDateConfirm = useCallback(
+    async (date: string) => {
+      setShowDatePicker(false);
+      if (!playerName || !pendingDateQuestId) return;
+
+      await joinQuest(pendingDateQuestId, playerName, date);
+      setPendingDateQuestId(null);
+    },
+    [playerName, pendingDateQuestId, quests]
   );
 
   const handleNameConfirm = useCallback(
@@ -156,11 +120,18 @@ function App() {
       setPlayerName(name);
       setShowNameModal(false);
       if (pendingJoinQuestId) {
-        joinQuest(pendingJoinQuestId, name);
+        // After name is set, re-trigger join which will check for date
+        const quest = quests.find((q) => q.id === pendingJoinQuestId);
+        if (quest && quest.players.length === 0) {
+          setPendingDateQuestId(pendingJoinQuestId);
+          setShowDatePicker(true);
+        } else {
+          joinQuest(pendingJoinQuestId, name);
+        }
         setPendingJoinQuestId(null);
       }
     },
-    [pendingJoinQuestId]
+    [pendingJoinQuestId, quests]
   );
 
   const handleLeaveQuest = useCallback(
@@ -234,7 +205,19 @@ function App() {
         }}
       >
         <NavTab label="Map" active={page === "map"} onClick={() => setPage("map")} />
-        <NavTab label="Active Quests" active={page === "active-quests"} onClick={() => setPage("active-quests")} />
+        <NavTab
+          label="Active Quests"
+          active={page === "active-quests"}
+          onClick={() => setPage("active-quests")}
+          badge={playerName
+            ? quests.filter(
+                (q) =>
+                  q.status === "in_progress" &&
+                  !q.players.includes(playerName)
+              ).length
+            : 0
+          }
+        />
         <NavTab label="Bounty Board" active={page === "bounties"} onClick={() => setPage("bounties")} />
       </nav>
 
@@ -253,8 +236,7 @@ function App() {
           <div style={{ flex: 1, position: "relative" }}>
             <HexGrid
               hexes={hexes}
-              quests={allQuests}
-              explorationHexes={explorationHexes}
+              quests={quests}
               selectedHex={selectedHex}
               onHexSelect={handleHexSelect}
             />
@@ -290,7 +272,7 @@ function App() {
           <SidePanel
             selectedHex={selectedHex}
             hexData={selectedHexData}
-            quests={allQuests}
+            quests={quests}
             playerName={playerName}
             isAdmin={isAdmin}
             onJoinQuest={handleJoinQuest}
@@ -303,7 +285,7 @@ function App() {
       ) : page === "active-quests" ? (
         <div style={{ flex: 1, overflow: "auto" }}>
           <ActiveQuests
-            quests={allQuests}
+            quests={quests}
             playerName={playerName}
             isAdmin={isAdmin}
             onJoinQuest={handleJoinQuest}
@@ -333,6 +315,16 @@ function App() {
         />
       )}
 
+      {showDatePicker && (
+        <DatePickerModal
+          onConfirm={handleDateConfirm}
+          onCancel={() => {
+            setShowDatePicker(false);
+            setPendingDateQuestId(null);
+          }}
+        />
+      )}
+
       {questEditor.isOpen && (
         <QuestEditor
           quest={questEditor.quest}
@@ -352,10 +344,12 @@ function NavTab({
   label,
   active,
   onClick,
+  badge,
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
+  badge?: number;
 }) {
   return (
     <button
@@ -371,9 +365,33 @@ function NavTab({
         cursor: "pointer",
         fontFamily: "'Cinzel', serif",
         letterSpacing: "0.5px",
+        position: "relative",
       }}
     >
       {label}
+      {badge !== undefined && badge > 0 && (
+        <span
+          style={{
+            position: "absolute",
+            top: 4,
+            right: 4,
+            background: "#ef4444",
+            color: "#fff",
+            fontSize: 10,
+            fontWeight: 700,
+            fontFamily: "'Segoe UI', sans-serif",
+            borderRadius: "50%",
+            width: 18,
+            height: 18,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            lineHeight: 1,
+          }}
+        >
+          {badge > 9 ? "9+" : badge}
+        </span>
+      )}
     </button>
   );
 }
