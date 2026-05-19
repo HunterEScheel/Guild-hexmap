@@ -1,6 +1,61 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 const BOUNTY_FILE = "/bounties.md";
+
+interface BountyRow {
+  name: string;
+  size: string;
+  bounty: string;
+}
+
+type SortKey = "name" | "size" | "bounty";
+
+const SIZE_ORDER = ["Tiny", "Small", "Medium", "Large", "Huge", "Gargantuan"];
+
+// Converts a displayed bounty ("349 gp", "9 sp", "1 cp") into copper for sorting.
+function bountyToCopper(text: string): number {
+  const match = text.match(/^([\d,]+)\s*(gp|sp|cp)$/i);
+  if (!match) return 0;
+  const amount = parseInt(match[1].replace(/,/g, ""), 10);
+  const unit = match[2].toLowerCase();
+  return unit === "gp" ? amount * 100 : unit === "sp" ? amount * 10 : amount;
+}
+
+// Splits the bounty markdown into the lore before the creature table, the
+// parsed table rows, and the lore after it.
+function splitBountyTable(md: string): {
+  before: string;
+  rows: BountyRow[];
+  after: string;
+} {
+  const lines = md.replace(/\r\n?/g, "\n").split("\n");
+  const headerIdx = lines.findIndex(
+    (l) => l.trim() === "| Creature | Size | Bounty |"
+  );
+  if (headerIdx === -1) return { before: md, rows: [], after: "" };
+
+  let endIdx = headerIdx + 2;
+  while (endIdx < lines.length && lines[endIdx].trim().startsWith("|")) {
+    endIdx++;
+  }
+
+  const rows: BountyRow[] = lines
+    .slice(headerIdx + 2, endIdx)
+    .map((line) => {
+      const cells = line
+        .split("|")
+        .map((c) => c.trim())
+        .filter((c) => c.length > 0);
+      return { name: cells[0] ?? "", size: cells[1] ?? "", bounty: cells[2] ?? "" };
+    })
+    .filter((r) => r.name);
+
+  return {
+    before: lines.slice(0, headerIdx).join("\n"),
+    rows,
+    after: lines.slice(endIdx).join("\n"),
+  };
+}
 
 export function BountyBoard() {
   const [markdown, setMarkdown] = useState<string>("");
@@ -22,6 +77,11 @@ export function BountyBoard() {
       });
   }, []);
 
+  const { before, rows, after } = useMemo(
+    () => splitBountyTable(markdown),
+    [markdown]
+  );
+
   if (loading) {
     return (
       <div style={{ color: "#9ca3af", padding: 40, textAlign: "center" }}>
@@ -42,9 +102,122 @@ export function BountyBoard() {
     >
       <div
         className="markdown-body"
-        dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
+        dangerouslySetInnerHTML={{ __html: renderMarkdown(before) }}
       />
+      {rows.length > 0 && <BountyTable rows={rows} />}
+      {after.trim() && (
+        <div
+          className="markdown-body"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(after) }}
+        />
+      )}
     </div>
+  );
+}
+
+function BountyTable({ rows }: { rows: BountyRow[] }) {
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const visible = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const filtered = query
+      ? rows.filter((r) => r.name.toLowerCase().includes(query))
+      : rows;
+
+    return [...filtered].sort((a, b) => {
+      let cmp: number;
+      if (sortKey === "name") {
+        cmp = a.name.localeCompare(b.name);
+      } else if (sortKey === "size") {
+        cmp = SIZE_ORDER.indexOf(a.size) - SIZE_ORDER.indexOf(b.size);
+      } else {
+        cmp = bountyToCopper(a.bounty) - bountyToCopper(b.bounty);
+      }
+      if (cmp === 0) cmp = a.name.localeCompare(b.name);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [rows, search, sortKey, sortDir]);
+
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+
+  const arrow = (key: SortKey) =>
+    key === sortKey ? (sortDir === "asc" ? " ▲" : " ▼") : "";
+
+  return (
+    <>
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search creatures..."
+        style={{
+          width: "100%",
+          boxSizing: "border-box",
+          background: "#1e1e36",
+          border: "1px solid #2e2e4a",
+          borderRadius: 6,
+          padding: "8px 12px",
+          color: "#e8e8f0",
+          fontSize: 14,
+          marginBottom: 8,
+        }}
+      />
+      <p style={{ color: "#6b7280", fontSize: 12, marginBottom: 12 }}>
+        {visible.length} of {rows.length} creatures
+      </p>
+      {visible.length === 0 ? (
+        <p style={{ color: "#6b7280", fontSize: 14 }}>
+          No creatures match your search.
+        </p>
+      ) : (
+        <div className="markdown-body">
+          <table>
+            <thead>
+              <tr>
+                {(
+                  [
+                    ["name", "Creature"],
+                    ["size", "Size"],
+                    ["bounty", "Bounty"],
+                  ] as [SortKey, string][]
+                ).map(([key, label]) => (
+                  <th
+                    key={key}
+                    onClick={() => toggleSort(key)}
+                    style={{
+                      cursor: "pointer",
+                      userSelect: "none",
+                      color: key === sortKey ? "#e8e8f0" : "#c084fc",
+                    }}
+                  >
+                    {label}
+                    {arrow(key)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((r) => (
+                <tr key={r.name}>
+                  <td>{r.name}</td>
+                  <td>{r.size}</td>
+                  <td>{r.bounty}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -101,30 +274,24 @@ function renderMarkdown(md: string): string {
   );
 
   // Ordered lists
-  html = html.replace(
-    /^((?:\d+\. .+\n?)+)/gm,
-    (_m, block: string) => {
-      const items = block
-        .trim()
-        .split("\n")
-        .map((line: string) => `<li>${line.replace(/^\d+\. /, "")}</li>`)
-        .join("");
-      return `<ol>${items}</ol>`;
-    }
-  );
+  html = html.replace(/^((?:\d+\. .+\n?)+)/gm, (_m, block: string) => {
+    const items = block
+      .trim()
+      .split("\n")
+      .map((line: string) => `<li>${line.replace(/^\d+\. /, "")}</li>`)
+      .join("");
+    return `<ol>${items}</ol>`;
+  });
 
   // Unordered lists
-  html = html.replace(
-    /^((?:[-*] .+\n?)+)/gm,
-    (_m, block: string) => {
-      const items = block
-        .trim()
-        .split("\n")
-        .map((line: string) => `<li>${line.replace(/^[-*] /, "")}</li>`)
-        .join("");
-      return `<ul>${items}</ul>`;
-    }
-  );
+  html = html.replace(/^((?:[-*] .+\n?)+)/gm, (_m, block: string) => {
+    const items = block
+      .trim()
+      .split("\n")
+      .map((line: string) => `<li>${line.replace(/^[-*] /, "")}</li>`)
+      .join("");
+    return `<ul>${items}</ul>`;
+  });
 
   // Paragraphs (lines not already wrapped in tags)
   html = html

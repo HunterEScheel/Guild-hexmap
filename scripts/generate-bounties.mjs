@@ -93,7 +93,7 @@ function buildMarkdown(monsters) {
   lines.push("## Bounty Rates");
   lines.push("");
   lines.push(
-    `Every non-undead creature the guild has catalogued (${rest.length} in total), listed alphabetically. The bounty reflects the threat a creature poses -- the deadlier it is, the more its kill is worth.`
+    `Every non-undead creature the guild has catalogued (${rest.length} in total). Search by name or sort any column. The bounty reflects the threat a creature poses -- the deadlier it is, the more its kill is worth.`
   );
   lines.push("");
   lines.push("| Creature | Size | Bounty |");
