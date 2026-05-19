@@ -1,86 +1,90 @@
 import { useState, useEffect, useMemo } from "react";
 
-const BOUNTY_FILE = "/bounties.md";
+const OPEN5E_BASE = "https://api.open5e.com/v2";
 
 interface BountyRow {
   name: string;
   size: string;
   bounty: string;
+  copperValue: number;
 }
 
 type SortKey = "name" | "size" | "bounty";
 
 const SIZE_ORDER = ["Tiny", "Small", "Medium", "Large", "Huge", "Gargantuan"];
 
-// Converts a displayed bounty ("349 gp", "9 sp", "1 cp") into copper for sorting.
-function bountyToCopper(text: string): number {
-  const match = text.match(/^([\d,]+)\s*(gp|sp|cp)$/i);
-  if (!match) return 0;
-  const amount = parseInt(match[1].replace(/,/g, ""), 10);
-  const unit = match[2].toLowerCase();
-  return unit === "gp" ? amount * 100 : unit === "sp" ? amount * 10 : amount;
+// Bounty = 1/10 of XP, expressed in gp/sp/cp.
+function formatBounty(xp: number): { text: string; copper: number } {
+  // XP / 10 gives gold value; multiply by 100 to get copper
+  const copper = Math.max(1, Math.round((xp / 10) * 100));
+  let text: string;
+  if (copper >= 100) {
+    text = `${Math.round(copper / 100).toLocaleString("en-US")} gp`;
+  } else if (copper >= 10) {
+    const sp = Math.round(copper / 10);
+    text = sp >= 10 ? "1 gp" : `${sp} sp`;
+  } else {
+    text = `${copper} cp`;
+  }
+  return { text, copper };
 }
 
-// Splits the bounty markdown into the lore before the creature table, the
-// parsed table rows, and the lore after it.
-function splitBountyTable(md: string): {
-  before: string;
-  rows: BountyRow[];
-  after: string;
-} {
-  const lines = md.replace(/\r\n?/g, "\n").split("\n");
-  const headerIdx = lines.findIndex(
-    (l) => l.trim() === "| Creature | Size | Bounty |"
-  );
-  if (headerIdx === -1) return { before: md, rows: [], after: "" };
+interface Open5eV2Creature {
+  key: string;
+  name: string;
+  size: { key: string; name: string };
+  type: { key: string; name: string };
+  experience_points: number;
+}
 
-  let endIdx = headerIdx + 2;
-  while (endIdx < lines.length && lines[endIdx].trim().startsWith("|")) {
-    endIdx++;
+let bountyCache: BountyRow[] | null = null;
+
+async function fetchAllBountyCreatures(): Promise<BountyRow[]> {
+  if (bountyCache) return bountyCache;
+
+  const monsters: Open5eV2Creature[] = [];
+  let url: string | null =
+    `${OPEN5E_BASE}/creatures/?format=json&limit=100` +
+    `&fields=key,name,size,type,experience_points`;
+
+  while (url) {
+    const res = await fetch(url);
+    const data = (await res.json()) as {
+      next: string | null;
+      results: Open5eV2Creature[];
+    };
+    monsters.push(...data.results);
+    url = data.next;
   }
 
-  const rows: BountyRow[] = lines
-    .slice(headerIdx + 2, endIdx)
-    .map((line) => {
-      const cells = line
-        .split("|")
-        .map((c) => c.trim())
-        .filter((c) => c.length > 0);
-      return { name: cells[0] ?? "", size: cells[1] ?? "", bounty: cells[2] ?? "" };
-    })
-    .filter((r) => r.name);
+  // Exclude undead (consolidated into quest-only)
+  // Deduplicate by name (different source documents list the same creature)
+  const seen = new Set<string>();
+  const rows: BountyRow[] = [];
+  for (const m of monsters) {
+    if (m.type.key === "undead") continue;
+    if (m.experience_points <= 0) continue;
+    if (seen.has(m.name)) continue;
+    seen.add(m.name);
+    const { text, copper } = formatBounty(m.experience_points);
+    rows.push({ name: m.name, size: m.size.name, bounty: text, copperValue: copper });
+  }
 
-  return {
-    before: lines.slice(0, headerIdx).join("\n"),
-    rows,
-    after: lines.slice(endIdx).join("\n"),
-  };
+  rows.sort((a, b) => a.name.localeCompare(b.name));
+  bountyCache = rows;
+  return rows;
 }
 
 export function BountyBoard() {
-  const [markdown, setMarkdown] = useState<string>("");
+  const [rows, setRows] = useState<BountyRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(BOUNTY_FILE)
-      .then((res) => {
-        if (!res.ok) throw new Error("Not found");
-        return res.text();
-      })
-      .then((text) => {
-        setMarkdown(text);
-        setLoading(false);
-      })
-      .catch(() => {
-        setMarkdown("# Bounty Board\n\n*No bounties posted yet.*");
-        setLoading(false);
-      });
+    fetchAllBountyCreatures()
+      .then(setRows)
+      .catch((err) => console.error("Bounty fetch error:", err))
+      .finally(() => setLoading(false));
   }, []);
-
-  const { before, rows, after } = useMemo(
-    () => splitBountyTable(markdown),
-    [markdown]
-  );
 
   if (loading) {
     return (
@@ -100,17 +104,107 @@ export function BountyBoard() {
         fontFamily: "'Segoe UI', system-ui, sans-serif",
       }}
     >
-      <div
-        className="markdown-body"
-        dangerouslySetInnerHTML={{ __html: renderMarkdown(before) }}
-      />
+      <h1>Bounty Table</h1>
+      <p>
+        Standard bounty rates paid by the guild per creature kill. Proof of kill
+        must be delivered to any guild writ-post for payment.
+      </p>
+
+      <h2>Proof Requirements</h2>
+      <div className="markdown-body">
+        <table>
+          <thead>
+            <tr>
+              <th>Creature Size</th>
+              <th>Required Proof</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <strong>Tiny / Small</strong>
+              </td>
+              <td>Full creature body</td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Medium</strong>
+              </td>
+              <td>
+                Head, or equivalent identifying remains if the creature has no
+                head
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <strong>Large+</strong>
+              </td>
+              <td>
+                Head, or equivalent identifying remains. Assessor may accept
+                partial proof for transport reasons
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Undead (Shadows, Specters, etc.)</h3>
+      <p>
+        Incorporeal creatures leave no body. The guild cannot verify a kill
+        without proof, and it will not pay bounties on someone's word alone. A
+        skeleton or zombie body proves nothing — anyone with the right spell can
+        make one from a fresh corpse. An open bounty on undead is an open bounty
+        on murder. If you encounter an incorporeal or undead creature:
+      </p>
+      <ol>
+        <li>
+          <strong>Report it to the guild.</strong> Describe what you saw, where,
+          and when.
+        </li>
+        <li>
+          <strong>The guild posts a quest</strong> to kill it, with a set reward.
+        </li>
+        <li>
+          <strong>The reporting party cannot take that quest.</strong> This
+          prevents adventurers from fabricating sightings to collect their own
+          bounty.
+        </li>
+      </ol>
+
+      <hr style={{ borderColor: "#2e2e4a", margin: "24px 0" }} />
+
+      <h2>Bounty Rates</h2>
+      <p>
+        Every creature the guild pays a bounty on ({rows.length} in total).
+        Search by name or sort any column; the bounty reflects the threat a
+        creature poses. People are not listed — the guild bounties monsters, not
+        persons, and will not pay for murder.
+      </p>
+
       {rows.length > 0 && <BountyTable rows={rows} />}
-      {after.trim() && (
-        <div
-          className="markdown-body"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(after) }}
-        />
-      )}
+
+      <hr style={{ borderColor: "#2e2e4a", margin: "24px 0" }} />
+
+      <h2>Rules</h2>
+      <ul>
+        <li>
+          <strong>No double-dipping.</strong> A creature killed during a monthly
+          patrol cannot also be claimed against a separate writ for the same
+          threat. Pick one payout.
+        </li>
+        <li>
+          <strong>Fraud.</strong> Claiming a bounty for a creature you didn't
+          kill, or presenting fabricated proof, results in permanent ban from the
+          guild board. In a world where the next ghoul warren is one bad winter
+          away, losing guild access is a serious consequence.
+        </li>
+        <li>
+          <strong>Unknowns.</strong> If you kill something you can't identify,
+          bring the head (or full body if small enough). The assessor will
+          classify it, set a bounty, and add it to the table for future
+          reference.
+        </li>
+      </ul>
     </div>
   );
 }
@@ -133,7 +227,7 @@ function BountyTable({ rows }: { rows: BountyRow[] }) {
       } else if (sortKey === "size") {
         cmp = SIZE_ORDER.indexOf(a.size) - SIZE_ORDER.indexOf(b.size);
       } else {
-        cmp = bountyToCopper(a.bounty) - bountyToCopper(b.bounty);
+        cmp = a.copperValue - b.copperValue;
       }
       if (cmp === 0) cmp = a.name.localeCompare(b.name);
       return sortDir === "asc" ? cmp : -cmp;
@@ -150,7 +244,7 @@ function BountyTable({ rows }: { rows: BountyRow[] }) {
   }
 
   const arrow = (key: SortKey) =>
-    key === sortKey ? (sortDir === "asc" ? " ▲" : " ▼") : "";
+    key === sortKey ? (sortDir === "asc" ? " \u25B2" : " \u25BC") : "";
 
   return (
     <>
@@ -219,106 +313,4 @@ function BountyTable({ rows }: { rows: BountyRow[] }) {
       )}
     </>
   );
-}
-
-function renderMarkdown(md: string): string {
-  // Normalize line endings — Windows checkouts deliver CRLF, which would
-  // otherwise break the line-anchored table and list patterns below.
-  let html = md.replace(/\r\n?/g, "\n");
-
-  // Code blocks (``` ... ```)
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, _lang, code) => {
-    return `<pre><code>${escapeHtml(code.trimEnd())}</code></pre>`;
-  });
-
-  // Inline code
-  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
-
-  // Headers
-  html = html.replace(/^#### (.+)$/gm, "<h4>$1</h4>");
-  html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
-  html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>");
-  html = html.replace(/^# (.+)$/gm, "<h1>$1</h1>");
-
-  // Horizontal rules
-  html = html.replace(/^---$/gm, "<hr />");
-
-  // Bold and italic
-  html = html.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
-  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
-
-  // Tables
-  html = html.replace(
-    /^(\|.+\|)\n(\|[-| :]+\|)\n((?:\|.+\|\n?)+)/gm,
-    (_m, headerRow: string, _separator: string, bodyRows: string) => {
-      const headers = headerRow
-        .split("|")
-        .filter((c: string) => c.trim())
-        .map((c: string) => `<th>${c.trim()}</th>`)
-        .join("");
-      const rows = bodyRows
-        .trim()
-        .split("\n")
-        .map((row: string) => {
-          const cells = row
-            .split("|")
-            .filter((c: string) => c.trim())
-            .map((c: string) => `<td>${c.trim()}</td>`)
-            .join("");
-          return `<tr>${cells}</tr>`;
-        })
-        .join("");
-      return `<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
-    }
-  );
-
-  // Ordered lists
-  html = html.replace(/^((?:\d+\. .+\n?)+)/gm, (_m, block: string) => {
-    const items = block
-      .trim()
-      .split("\n")
-      .map((line: string) => `<li>${line.replace(/^\d+\. /, "")}</li>`)
-      .join("");
-    return `<ol>${items}</ol>`;
-  });
-
-  // Unordered lists
-  html = html.replace(/^((?:[-*] .+\n?)+)/gm, (_m, block: string) => {
-    const items = block
-      .trim()
-      .split("\n")
-      .map((line: string) => `<li>${line.replace(/^[-*] /, "")}</li>`)
-      .join("");
-    return `<ul>${items}</ul>`;
-  });
-
-  // Paragraphs (lines not already wrapped in tags)
-  html = html
-    .split("\n\n")
-    .map((block) => {
-      const trimmed = block.trim();
-      if (!trimmed) return "";
-      if (
-        trimmed.startsWith("<h") ||
-        trimmed.startsWith("<table") ||
-        trimmed.startsWith("<ul") ||
-        trimmed.startsWith("<ol") ||
-        trimmed.startsWith("<pre") ||
-        trimmed.startsWith("<hr")
-      ) {
-        return trimmed;
-      }
-      return `<p>${trimmed.replace(/\n/g, "<br />")}</p>`;
-    })
-    .join("\n");
-
-  return html;
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
 }

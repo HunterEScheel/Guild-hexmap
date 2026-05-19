@@ -1,4 +1,4 @@
-import type { ChallengeTier, TerrainType } from "../types";
+import type { ChallengeTier } from "../types";
 
 export const TIER_LABELS: Record<ChallengeTier, string> = {
   0: "Tier 0 (Cleared Path)",
@@ -7,22 +7,6 @@ export const TIER_LABELS: Record<ChallengeTier, string> = {
   3: "Tier 3 (Lvl 11-15)",
   4: "Tier 4 (Lvl 16-20)",
 };
-
-const API_BASE = "https://www.dnd5eapi.co";
-
-// Fields used from a dnd5eapi.co monster object.
-export interface ApiMonster {
-  index: string;
-  name: string;
-  size: string;
-  type: string;
-  challenge_rating: number;
-  xp: number;
-  hit_points: number;
-  armor_class: { type: string; value: number }[];
-  speed: Record<string, string>;
-  image?: string | null;
-}
 
 // A monster reduced to the stats the hexmap cares about.
 export interface Creature {
@@ -36,8 +20,6 @@ export interface Creature {
   armorClass: number;
   combatPoints: number;
   tier: ChallengeTier;
-  terrains: TerrainType[];
-  imageUrl: string | null;
 }
 
 export interface EncounterGroup {
@@ -87,72 +69,22 @@ export function formatCr(cr: number): string {
   return String(cr);
 }
 
-export function crToTier(cr: number): ChallengeTier {
-  if (cr <= 0.5) return 0;
-  if (cr <= 4) return 1;
-  if (cr <= 10) return 2;
-  if (cr <= 16) return 3;
-  return 4;
-}
-
-// Base terrains per monster type. The 5e API has no environment data, so
-// terrain is inferred heuristically from type, movement speed, and name.
-const TYPE_TERRAINS: Record<string, TerrainType[]> = {
-  aberration: ["swamp", "mountain", "unallied_city"],
-  beast: ["forest", "plains", "mountain", "swamp", "desert", "snow"],
-  celestial: ["mountain", "snow", "plains"],
-  construct: ["unallied_city", "desert", "mountain"],
-  dragon: ["mountain", "forest", "swamp", "desert", "snow"],
-  elemental: ["mountain", "desert", "water", "snow"],
-  fey: ["forest", "swamp", "plains"],
-  fiend: ["unallied_city", "mountain", "desert"],
-  giant: ["mountain", "snow", "desert", "plains"],
-  humanoid: ["plains", "forest", "mountain", "unallied_city"],
-  monstrosity: ["mountain", "forest", "swamp", "desert"],
-  ooze: ["swamp", "unallied_city"],
-  plant: ["forest", "swamp"],
-  undead: ["swamp", "unallied_city", "forest", "snow"],
+// Max CR a creature can have and still belong to a given tier.
+// Tier 4 has no cap (Infinity).
+export const TIER_MAX_CR: Record<ChallengeTier, number> = {
+  0: 1,
+  1: 5,
+  2: 10,
+  3: 15,
+  4: Infinity,
 };
 
-const SNOW_KEYWORDS = ["ice", "frost", "polar", "winter", "white dragon", "snow", "yeti", "mammoth", "remorhaz"];
-const DESERT_KEYWORDS = ["sand", "desert", "red dragon", "brass", "blue dragon", "scorpion", "salamander"];
-const WATER_KEYWORDS = ["sea", "aquatic", "octopus", "shark", "crocodile", "merfolk", "sahuagin", "reef", "kraken", "hydra"];
-
-export function monsterTerrains(monster: ApiMonster): TerrainType[] {
-  const type = monster.type?.toLowerCase() ?? "";
-  const terrains = new Set<TerrainType>(
-    TYPE_TERRAINS[type] ?? ["forest", "plains", "mountain"]
-  );
-
-  const speed = monster.speed ?? {};
-  // A creature that swims but cannot walk lives only in water.
-  if ("swim" in speed && !("walk" in speed)) return ["water"];
-  if ("swim" in speed) terrains.add("water");
-
-  const name = `${monster.name} ${monster.index}`.toLowerCase();
-  if (SNOW_KEYWORDS.some((k) => name.includes(k))) terrains.add("snow");
-  if (DESERT_KEYWORDS.some((k) => name.includes(k))) terrains.add("desert");
-  if (WATER_KEYWORDS.some((k) => name.includes(k))) terrains.add("water");
-
-  return [...terrains];
-}
-
-export function toCreature(monster: ApiMonster): Creature {
-  const cr = monster.challenge_rating ?? 0;
-  return {
-    index: monster.index,
-    name: monster.name,
-    size: monster.size,
-    type: monster.type,
-    challengeRating: cr,
-    xp: monster.xp ?? 0,
-    hitPoints: monster.hit_points ?? 0,
-    armorClass: monster.armor_class?.[0]?.value ?? 10,
-    combatPoints: monster.xp ?? 0,
-    tier: crToTier(cr),
-    terrains: monsterTerrains(monster),
-    imageUrl: monster.image ? `${API_BASE}${monster.image}` : null,
-  };
+export function crToTier(cr: number): ChallengeTier {
+  if (cr <= TIER_MAX_CR[0]) return 0;
+  if (cr <= TIER_MAX_CR[1]) return 1;
+  if (cr <= TIER_MAX_CR[2]) return 2;
+  if (cr <= TIER_MAX_CR[3]) return 3;
+  return 4;
 }
 
 function randInt(min: number, max: number): number {
@@ -220,8 +152,6 @@ export function composeEncounter(
 ): GeneratedEncounter | null {
   if (pool.length === 0) return null;
   const [minXP, maxXP] = TIER_XP_RANGE[tier];
-  // The type count is chosen once so the returned encounter follows the
-  // weighting, rather than the first composition that happens to fit budget.
   const typeCount = pickTypeCount(Math.min(MAX_TYPES, pool.length));
 
   let best: GeneratedEncounter | null = null;
@@ -232,12 +162,10 @@ export function composeEncounter(
     const counts = creatures.map(() => 1);
     let total = counts.length;
 
-    // Distribute extra creatures at random without exceeding the cap.
     for (let extras = randInt(0, MAX_CREATURES - total); extras > 0; extras--) {
       counts[Math.floor(Math.random() * counts.length)]++;
       total++;
     }
-    // Guarantee the encounter holds at least MIN_CREATURES creatures.
     while (total < MIN_CREATURES) {
       counts[0]++;
       total++;
