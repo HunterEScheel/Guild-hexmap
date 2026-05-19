@@ -32,6 +32,9 @@ interface Open5eV2Creature {
 const FIELDS =
   "key,name,size,type,challenge_rating,experience_points,hit_points,armor_class,environments";
 
+// Only include official SRD content.
+const DOCUMENT_FILTER = "&document__key=srd-2024";
+
 // Cache creature pools by maxCR to avoid repeated API calls.
 // Environment filtering is done client-side after fetch.
 const crCache = new Map<number, Open5eV2Creature[]>();
@@ -48,7 +51,7 @@ async function fetchCreaturesByCR(
 
   const creatures: Open5eV2Creature[] = [];
   let url: string | null =
-    `${OPEN5E_BASE}/creatures/?format=json&limit=100&fields=${FIELDS}${crFilter}`;
+    `${OPEN5E_BASE}/creatures/?format=json&limit=100&fields=${FIELDS}${DOCUMENT_FILTER}${crFilter}`;
 
   while (url) {
     const res = await fetch(url);
@@ -64,10 +67,13 @@ async function fetchCreaturesByCR(
   return creatures;
 }
 
-function hasEnvironment(
+// A creature matches a terrain if it lists a matching environment,
+// or if it has no environment data at all (wildcard).
+function matchesTerrain(
   creature: Open5eV2Creature,
   envKeys: string[]
 ): boolean {
+  if (creature.environments.length === 0) return true;
   return creature.environments.some((e) => envKeys.includes(e.key));
 }
 
@@ -98,15 +104,15 @@ export async function generateEncounter(
   const maxCR = TIER_MAX_CR[tier];
   const allCreatures = await fetchCreaturesByCR(maxCR);
 
-  // Filter to creatures that list one of the target environments,
-  // deduplicate by key (different source documents can list the same creature).
+  // Include creatures that match the terrain or have no environment data (wildcard).
+  // Deduplicate by name (different source documents can list the same creature).
   const seen = new Set<string>();
   const pool: Creature[] = [];
   for (const m of allCreatures) {
     if (m.experience_points <= 0) continue;
-    if (!hasEnvironment(m, envKeys)) continue;
-    if (seen.has(m.key)) continue;
-    seen.add(m.key);
+    if (!matchesTerrain(m, envKeys)) continue;
+    if (seen.has(m.name)) continue;
+    seen.add(m.name);
     pool.push(toCreature(m));
   }
 

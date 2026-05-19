@@ -10,11 +10,14 @@ import { BountyBoard } from "./components/BountyBoard";
 import { DatePickerModal } from "./components/DatePickerModal";
 import { About } from "./components/About";
 import { Characters } from "./components/Characters";
+import { World } from "./components/World";
 import { Shop } from "./components/Shop";
 import { ActiveQuests } from "./components/ActiveQuests";
+import { InitiativeTracker } from "./components/InitiativeTracker";
 import {
   useHexData,
   useQuests,
+  useInitiative,
   setHexTerrain,
   setHexChallengeTier,
   createQuest,
@@ -22,18 +25,25 @@ import {
   deleteQuest,
   joinQuest,
   leaveQuest,
+  addInitiativeEntry,
+  clearInitiativeTracker,
 } from "./hooks/useFirebase";
 import { useAdminMode } from "./hooks/useAdminMode";
+import type { GeneratedEncounter } from "./data/bestiary";
 import type { ChallengeTier, Quest, TerrainType } from "./types";
 import "./index.css";
 
-type Page = "map" | "bounties" | "active-quests" | "shop" | "characters" | "about";
+type TopPage = "guild" | "about";
+type GuildSub = "map" | "active-quests" | "bounties" | "shop" | "initiative";
+type AboutSub = "system" | "world" | "characters";
 
 function App() {
-  const [page, setPage] = useState<Page>("map");
+  const [topPage, setTopPage] = useState<TopPage>("guild");
+  const [guildSub, setGuildSub] = useState<GuildSub>("map");
+  const [aboutSub, setAboutSub] = useState<AboutSub>("system");
   const hexes = useHexData();
   const quests = useQuests();
-
+  const initiativeEntries = useInitiative();
 
   // Selection
   const [selectedHex, setSelectedHex] = useState<{
@@ -96,7 +106,6 @@ function App() {
       }
       const quest = quests.find((q) => q.id === questId);
       if (quest && quest.players.length === 0) {
-        // First player — must pick a date
         setPendingDateQuestId(questId);
         setShowDatePicker(true);
         return;
@@ -123,7 +132,6 @@ function App() {
       setPlayerName(name);
       setShowNameModal(false);
       if (pendingJoinQuestId) {
-        // After name is set, re-trigger join which will check for date
         const quest = quests.find((q) => q.id === pendingJoinQuestId);
         if (quest && quest.players.length === 0) {
           setPendingDateQuestId(pendingJoinQuestId);
@@ -180,9 +188,46 @@ function App() {
     [questEditor.quest]
   );
 
+  const handleRunEncounter = useCallback(async (encounter: GeneratedEncounter) => {
+    try {
+      await clearInitiativeTracker();
+      const entries: { name: string; initiative: number; isCreature: boolean; stats: { hp: number; ac: number; cr: number } }[] = [];
+      for (const group of encounter.groups) {
+        for (let i = 0; i < group.count; i++) {
+          const roll = 1 + Math.floor(Math.random() * 20);
+          const label = group.count > 1
+            ? `${group.creature.name} ${i + 1}`
+            : group.creature.name;
+          entries.push({
+            name: label,
+            initiative: roll,
+            isCreature: true,
+            stats: {
+              hp: group.creature.hitPoints,
+              ac: group.creature.armorClass,
+              cr: group.creature.challengeRating,
+            },
+          });
+        }
+      }
+      await Promise.all(
+        entries.map((e) => addInitiativeEntry(e.name, e.initiative, e.isCreature, e.stats))
+      );
+    } catch (err) {
+      console.error("Failed to run encounter:", err);
+    }
+    setGuildSub("initiative");
+  }, []);
+
   const selectedHexData = selectedHex
     ? hexes.get(`${selectedHex.col}_${selectedHex.row}`)
     : undefined;
+
+  const questBadge = quests.filter(
+    (q) =>
+      q.status === "in_progress" &&
+      (!playerName || !q.players.includes(playerName))
+  ).length;
 
   return (
     <div
@@ -194,7 +239,7 @@ function App() {
         background: "#0f0f1a",
       }}
     >
-      {/* Navigation */}
+      {/* Top Navigation */}
       <nav
         style={{
           display: "flex",
@@ -207,24 +252,55 @@ function App() {
           flexShrink: 0,
         }}
       >
-        <NavTab label="Map" active={page === "map"} onClick={() => setPage("map")} />
         <NavTab
-          label="Active Quests"
-          active={page === "active-quests"}
-          onClick={() => setPage("active-quests")}
-          badge={quests.filter(
-            (q) =>
-              q.status === "in_progress" &&
-              (!playerName || !q.players.includes(playerName))
-          ).length}
+          label="Guild"
+          active={topPage === "guild"}
+          onClick={() => setTopPage("guild")}
+          badge={topPage !== "guild" ? questBadge : undefined}
         />
-        <NavTab label="Bounty Board" active={page === "bounties"} onClick={() => setPage("bounties")} />
-        <NavTab label="Shop" active={page === "shop"} onClick={() => setPage("shop")} />
-        <NavTab label="Characters" active={page === "characters"} onClick={() => setPage("characters")} />
-        <NavTab label="About" active={page === "about"} onClick={() => setPage("about")} />
+        <NavTab
+          label="About"
+          active={topPage === "about"}
+          onClick={() => setTopPage("about")}
+        />
       </nav>
 
-      {isAdmin && page === "map" && (
+      {/* Sub Navigation */}
+      <nav
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0,
+          background: "#0f0f1a",
+          borderBottom: "1px solid #1e1e36",
+          padding: "0 16px",
+          height: 36,
+          flexShrink: 0,
+        }}
+      >
+        {topPage === "guild" ? (
+          <>
+            <SubTab label="Map" active={guildSub === "map"} onClick={() => setGuildSub("map")} />
+            <SubTab
+              label="Active Quests"
+              active={guildSub === "active-quests"}
+              onClick={() => setGuildSub("active-quests")}
+              badge={questBadge}
+            />
+            <SubTab label="Bounty Board" active={guildSub === "bounties"} onClick={() => setGuildSub("bounties")} />
+            <SubTab label="Shop" active={guildSub === "shop"} onClick={() => setGuildSub("shop")} />
+            <SubTab label="Initiative" active={guildSub === "initiative"} onClick={() => setGuildSub("initiative")} />
+          </>
+        ) : (
+          <>
+            <SubTab label="The System" active={aboutSub === "system"} onClick={() => setAboutSub("system")} />
+            <SubTab label="The World" active={aboutSub === "world"} onClick={() => setAboutSub("world")} />
+            <SubTab label="Character Creation" active={aboutSub === "characters"} onClick={() => setAboutSub("characters")} />
+          </>
+        )}
+      </nav>
+
+      {isAdmin && topPage === "guild" && guildSub === "map" && (
         <AdminToolbar
           selectedTerrain={selectedTerrain}
           onSelectTerrain={setSelectedTerrain}
@@ -234,7 +310,8 @@ function App() {
         />
       )}
 
-      {page === "map" ? (
+      {/* Page Content */}
+      {topPage === "guild" && guildSub === "map" ? (
         <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
           <div style={{ flex: 1, position: "relative" }}>
             <HexGrid
@@ -283,9 +360,10 @@ function App() {
             onEditQuest={handleEditQuest}
             onDeleteQuest={handleDeleteQuest}
             onAddQuest={handleAddQuest}
+            onRunEncounter={isAdmin ? handleRunEncounter : undefined}
           />
         </div>
-      ) : page === "active-quests" ? (
+      ) : topPage === "guild" && guildSub === "active-quests" ? (
         <div style={{ flex: 1, overflow: "auto" }}>
           <ActiveQuests
             quests={quests}
@@ -297,21 +375,33 @@ function App() {
             onDeleteQuest={handleDeleteQuest}
           />
         </div>
-      ) : page === "bounties" ? (
+      ) : topPage === "guild" && guildSub === "bounties" ? (
         <div style={{ flex: 1, overflow: "auto" }}>
           <BountyBoard />
         </div>
-      ) : page === "shop" ? (
+      ) : topPage === "guild" && guildSub === "shop" ? (
         <div style={{ flex: 1, overflow: "auto" }}>
           <Shop isAdmin={isAdmin} />
         </div>
-      ) : page === "characters" ? (
+      ) : topPage === "guild" && guildSub === "initiative" ? (
         <div style={{ flex: 1, overflow: "auto" }}>
-          <Characters />
+          <InitiativeTracker
+            entries={initiativeEntries}
+            playerName={playerName}
+            isAdmin={isAdmin}
+          />
+        </div>
+      ) : topPage === "about" && aboutSub === "system" ? (
+        <div style={{ flex: 1, overflow: "auto" }}>
+          <About />
+        </div>
+      ) : topPage === "about" && aboutSub === "world" ? (
+        <div style={{ flex: 1, overflow: "auto" }}>
+          <World />
         </div>
       ) : (
         <div style={{ flex: 1, overflow: "auto" }}>
-          <About />
+          <Characters />
         </div>
       )}
 
@@ -374,8 +464,8 @@ function NavTab({
         border: "none",
         borderBottom: active ? "2px solid #4ade80" : "2px solid transparent",
         color: active ? "#e8e8f0" : "#6b7280",
-        padding: "10px 20px",
-        fontSize: 14,
+        padding: "10px 24px",
+        fontSize: 15,
         fontWeight: active ? 600 : 400,
         cursor: "pointer",
         fontFamily: "'Cinzel', serif",
@@ -398,6 +488,62 @@ function NavTab({
             borderRadius: "50%",
             width: 18,
             height: 18,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            lineHeight: 1,
+          }}
+        >
+          {badge > 9 ? "9+" : badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function SubTab({
+  label,
+  active,
+  onClick,
+  badge,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  badge?: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: "transparent",
+        border: "none",
+        borderBottom: active ? "2px solid #c084fc" : "2px solid transparent",
+        color: active ? "#e8e8f0" : "#6b7280",
+        padding: "7px 16px",
+        fontSize: 13,
+        fontWeight: active ? 600 : 400,
+        cursor: "pointer",
+        fontFamily: "'Segoe UI', system-ui, sans-serif",
+        letterSpacing: "0.3px",
+        position: "relative",
+      }}
+    >
+      {label}
+      {badge !== undefined && badge > 0 && (
+        <span
+          style={{
+            position: "absolute",
+            top: 2,
+            right: 2,
+            background: "#ef4444",
+            color: "#fff",
+            fontSize: 9,
+            fontWeight: 700,
+            fontFamily: "'Segoe UI', sans-serif",
+            borderRadius: "50%",
+            width: 16,
+            height: 16,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

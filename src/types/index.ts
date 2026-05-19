@@ -30,6 +30,17 @@ export interface HexData {
   challengeTier: ChallengeTier | null;
 }
 
+export interface InitiativeEntry {
+  id: string;
+  name: string;
+  initiative: number;
+  isCreature: boolean;
+  hp: number | null;
+  maxHp: number | null;
+  ac: number | null;
+  cr: number | null;
+}
+
 export interface Quest {
   id: string;
   title: string;

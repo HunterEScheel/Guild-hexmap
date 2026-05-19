@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
-import type { ChallengeTier, HexData, Quest, TerrainType } from "../types/index";
+import type { ChallengeTier, HexData, Quest, TerrainType, InitiativeEntry } from "../types/index";
 
 export function useHexData(): Map<string, HexData> {
   const [hexes, setHexes] = useState<Map<string, HexData>>(new Map());
@@ -238,4 +238,94 @@ export async function leaveQuest(
     }
     await supabase.from("quests").update(updates).eq("id", questId);
   }
+}
+
+// --- Initiative Tracker ---
+
+function mapInitiativeEntry(row: Record<string, unknown>): InitiativeEntry {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    initiative: row.initiative as number,
+    isCreature: row.is_creature as boolean,
+    hp: (row.hp as number) ?? null,
+    maxHp: (row.max_hp as number) ?? null,
+    ac: (row.ac as number) ?? null,
+    cr: (row.cr as number) ?? null,
+  };
+}
+
+export function useInitiative(): InitiativeEntry[] {
+  const [entries, setEntries] = useState<InitiativeEntry[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("initiative_tracker")
+      .select("*")
+      .order("initiative", { ascending: false })
+      .then(({ data }) => {
+        if (data) setEntries(data.map(mapInitiativeEntry));
+      });
+
+    const channel = supabase
+      .channel("initiative-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "initiative_tracker" },
+        (payload) => {
+          setEntries((prev) => {
+            let next: InitiativeEntry[];
+            if (payload.eventType === "DELETE") {
+              const old = payload.old as { id: string };
+              next = prev.filter((e) => e.id !== old.id);
+            } else if (payload.eventType === "INSERT") {
+              next = [...prev, mapInitiativeEntry(payload.new)];
+            } else {
+              next = prev.map((e) =>
+                e.id === (payload.new as { id: string }).id
+                  ? mapInitiativeEntry(payload.new)
+                  : e
+              );
+            }
+            return next.sort((a, b) => b.initiative - a.initiative);
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  return entries;
+}
+
+export async function addInitiativeEntry(
+  name: string,
+  initiative: number,
+  isCreature: boolean,
+  stats?: { hp?: number; ac?: number; cr?: number }
+): Promise<void> {
+  await supabase.from("initiative_tracker").insert({
+    name,
+    initiative,
+    is_creature: isCreature,
+    hp: stats?.hp ?? null,
+    max_hp: stats?.hp ?? null,
+    ac: stats?.ac ?? null,
+    cr: stats?.cr ?? null,
+  });
+}
+
+export async function removeInitiativeEntry(id: string): Promise<void> {
+  await supabase.from("initiative_tracker").delete().eq("id", id);
+}
+
+export async function updateInitiativeHp(id: string, hp: number): Promise<void> {
+  await supabase.from("initiative_tracker").update({ hp }).eq("id", id);
+}
+
+export async function clearInitiativeTracker(): Promise<void> {
+  await supabase.from("initiative_tracker").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 }

@@ -103,9 +103,27 @@ create table where not exists quests (
   created_at timestamptz default now()
 );
 
--- Enable real-time for both tables
+-- Initiative tracker (shared turn order for encounters)
+create table if not exists initiative_tracker (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  initiative integer not null default 0,
+  is_creature boolean not null default false,
+  hp integer,
+  max_hp integer,
+  ac integer,
+  cr real,
+  created_at timestamptz default now()
+);
+
+alter table initiative_tracker enable row level security;
+create policy "Allow all access to initiative_tracker" on initiative_tracker
+  for all using (true) with check (true);
+
+-- Enable real-time for tables
 alter publication supabase_realtime add table hexes;
 alter publication supabase_realtime add table quests;
+alter publication supabase_realtime add table initiative_tracker;
 
 -- Row Level Security (allow all for now — public game)
 alter table hexes enable row level security;

@@ -17,6 +17,7 @@ interface SidePanelProps {
   onEditQuest: (quest: Quest) => void;
   onDeleteQuest: (questId: string) => void;
   onAddQuest: () => void;
+  onRunEncounter?: (encounter: GeneratedEncounter) => void;
 }
 
 export function SidePanel({
@@ -30,6 +31,7 @@ export function SidePanel({
   onEditQuest,
   onDeleteQuest,
   onAddQuest,
+  onRunEncounter,
 }: SidePanelProps) {
   const [encounter, setEncounter] = useState<GeneratedEncounter | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -155,6 +157,7 @@ export function SidePanel({
                   encounter={encounter}
                   tier={challengeTier}
                   onClose={() => setEncounter(null)}
+                  onRun={onRunEncounter ? () => onRunEncounter(encounter) : undefined}
                 />
               )}
             </div>
@@ -220,10 +223,12 @@ function EncounterResult({
   encounter,
   tier,
   onClose,
+  onRun,
 }: {
   encounter: GeneratedEncounter;
   tier: ChallengeTier;
   onClose: () => void;
+  onRun?: () => void;
 }) {
   const [minXP, maxXP] = TIER_XP_RANGE[tier];
 
@@ -324,6 +329,28 @@ function EncounterResult({
         <p style={{ fontSize: 10, color: "#ef4444", margin: "4px 0 0" }}>
           Closest match — terrain pool could not fill the tier's XP range.
         </p>
+      )}
+      {onRun && (
+        <button
+          onClick={onRun}
+          style={{
+            display: "block",
+            marginTop: 10,
+            width: "100%",
+            background: "#4ade80",
+            color: "#000",
+            border: "none",
+            borderRadius: 4,
+            padding: "6px 12px",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            fontFamily: "'Cinzel', serif",
+            letterSpacing: "0.5px",
+          }}
+        >
+          Run Encounter
+        </button>
       )}
     </div>
   );
