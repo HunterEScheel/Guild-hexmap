@@ -8,6 +8,7 @@ import { QuestEditor } from "./components/QuestEditor";
 import { Legend } from "./components/Legend";
 import { BountyBoard } from "./components/BountyBoard";
 import { DatePickerModal } from "./components/DatePickerModal";
+import { About } from "./components/About";
 import { ActiveQuests } from "./components/ActiveQuests";
 import {
   useHexData,
@@ -24,7 +25,7 @@ import { useAdminMode } from "./hooks/useAdminMode";
 import type { ChallengeTier, Quest, TerrainType } from "./types";
 import "./index.css";
 
-type Page = "map" | "bounties" | "active-quests";
+type Page = "map" | "bounties" | "active-quests" | "about";
 
 function App() {
   const [page, setPage] = useState<Page>("map");
@@ -73,7 +74,7 @@ function App() {
         setHexTerrain(col, row, selectedTerrain);
         return;
       }
-      if (isAdmin && selectedTier) {
+      if (isAdmin && selectedTier != null) {
         setHexChallengeTier(col, row, selectedTier);
         return;
       }
@@ -209,16 +210,14 @@ function App() {
           label="Active Quests"
           active={page === "active-quests"}
           onClick={() => setPage("active-quests")}
-          badge={playerName
-            ? quests.filter(
-                (q) =>
-                  q.status === "in_progress" &&
-                  !q.players.includes(playerName)
-              ).length
-            : 0
-          }
+          badge={quests.filter(
+            (q) =>
+              q.status === "in_progress" &&
+              (!playerName || !q.players.includes(playerName))
+          ).length}
         />
         <NavTab label="Bounty Board" active={page === "bounties"} onClick={() => setPage("bounties")} />
+        <NavTab label="About" active={page === "about"} onClick={() => setPage("about")} />
       </nav>
 
       {isAdmin && page === "map" && (
@@ -294,9 +293,13 @@ function App() {
             onDeleteQuest={handleDeleteQuest}
           />
         </div>
-      ) : (
+      ) : page === "bounties" ? (
         <div style={{ flex: 1, overflow: "auto" }}>
           <BountyBoard />
+        </div>
+      ) : (
+        <div style={{ flex: 1, overflow: "auto" }}>
+          <About />
         </div>
       )}
 

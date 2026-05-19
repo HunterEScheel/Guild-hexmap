@@ -102,7 +102,7 @@ export function SidePanel({
               <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#9ca3af" }}>
                 Challenge Tier
               </h3>
-              {challengeTier ? (
+              {challengeTier != null ? (
                 <span style={{ fontSize: 13, color: "#d1d5db" }}>
                   {TIER_LABELS[challengeTier]}
                 </span>
@@ -113,7 +113,7 @@ export function SidePanel({
               )}
 
               {/* Random Encounter Generator */}
-              {isAdmin && challengeTier && (
+              {isAdmin && challengeTier != null && (
                 <button
                   disabled={generating}
                   onClick={async () => {
@@ -150,7 +150,7 @@ export function SidePanel({
               )}
 
               {/* Encounter Result */}
-              {encounter && challengeTier && (
+              {encounter && challengeTier != null && (
                 <EncounterResult
                   encounter={encounter}
                   tier={challengeTier}

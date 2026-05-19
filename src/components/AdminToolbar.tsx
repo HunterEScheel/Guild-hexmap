@@ -15,6 +15,7 @@ const TERRAIN_TYPES: TerrainType[] = [
 ];
 
 const TIER_CONFIG: { tier: ChallengeTier; label: string; color: string }[] = [
+  { tier: 0, label: "T0 (Cleared)", color: "#9ca3af" },
   { tier: 1, label: "T1 (1-5)", color: "#4ade80" },
   { tier: 2, label: "T2 (6-10)", color: "#facc15" },
   { tier: 3, label: "T3 (11-15)", color: "#f97316" },
@@ -38,7 +39,7 @@ export function AdminToolbar({
 }: AdminToolbarProps) {
   const paintingLabel = selectedTerrain
     ? `Painting: ${TERRAIN_LABELS[selectedTerrain]}`
-    : selectedTier
+    : selectedTier != null
       ? `Painting: Tier ${selectedTier}`
       : null;
 

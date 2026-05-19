@@ -1,6 +1,7 @@
 import type { ChallengeTier, TerrainType } from "../types";
 
 export const TIER_LABELS: Record<ChallengeTier, string> = {
+  0: "Tier 0 (Cleared Path)",
   1: "Tier 1 (Lvl 1-5)",
   2: "Tier 2 (Lvl 6-10)",
   3: "Tier 3 (Lvl 11-15)",
@@ -54,6 +55,7 @@ export interface GeneratedEncounter {
 
 // Total combat-point (XP) range a random encounter should fall within, per tier.
 export const TIER_XP_RANGE: Record<ChallengeTier, [number, number]> = {
+  0: [0, 200],
   1: [100, 1000],
   2: [800, 3000],
   3: [2000, 7500],
@@ -81,6 +83,7 @@ export function formatCr(cr: number): string {
 }
 
 export function crToTier(cr: number): ChallengeTier {
+  if (cr <= 0.5) return 0;
   if (cr <= 4) return 1;
   if (cr <= 10) return 2;
   if (cr <= 16) return 3;

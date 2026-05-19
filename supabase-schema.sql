@@ -13,6 +13,24 @@ create table where not exists hexes (
 -- Migration: Add challenge_tier to hexes
 -- alter table hexes add column challenge_tier integer;
 
+-- Bestiary table (curated terrain assignments for SRD monsters)
+create table if not exists bestiary (
+  index text primary key,
+  name text not null,
+  type text not null default '',
+  size text not null default '',
+  cr numeric not null default 0,
+  xp integer not null default 0,
+  hp integer not null default 0,
+  ac integer not null default 10,
+  terrains text[] not null default '{}'
+);
+
+alter table bestiary enable row level security;
+
+create policy "Allow all access to bestiary" on bestiary
+  for all using (true) with check (true);
+
 -- Migration: Add scheduled_date to quests
 -- alter table quests add column scheduled_date date;
 

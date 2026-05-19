@@ -21,7 +21,7 @@ export type QuestLevel =
 
 export type QuestStatus = "available" | "in_progress" | "completed";
 
-export type ChallengeTier = 1 | 2 | 3 | 4;
+export type ChallengeTier = 0 | 1 | 2 | 3 | 4;
 
 export interface HexData {
   col: number;
