@@ -49,7 +49,9 @@ export function BountyBoard() {
 }
 
 function renderMarkdown(md: string): string {
-  let html = md;
+  // Normalize line endings — Windows checkouts deliver CRLF, which would
+  // otherwise break the line-anchored table and list patterns below.
+  let html = md.replace(/\r\n?/g, "\n");
 
   // Code blocks (``` ... ```)
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, _lang, code) => {
