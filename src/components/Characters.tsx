@@ -27,10 +27,9 @@ export function Characters() {
                         All characters start at <strong>level 1</strong>.
                     </li>
                     <li>
-                        <strong>Ability scores</strong> are generated in pairs. You choose 2 stats and their
-                        order, then roll <strong>4d6 drop lowest</strong>. The first stat uses the roll;
-                        the second stat equals <strong>(11 &minus; roll) + 11</strong>. This guarantees
-                        each pair averages 11. Repeat for all 3 pairs (6 stats total).
+                        <strong>Ability scores</strong> are generated in pairs. You choose 2 stats and their order, then roll <strong>4d6 drop lowest</strong>.
+                        The first stat uses the roll; the second stat equals <strong>(11 &minus; roll) + 11</strong>. This guarantees each pair averages 11.
+                        Repeat for all 3 pairs (6 stats total).
                     </li>
                     <li>
                         Use <strong>standard equipment</strong> from your class and background, plus <strong>10 gold</strong> starting money.
@@ -48,24 +47,20 @@ export function Characters() {
 
             <Section title="Leveling Up">
                 <p>
-                    This campaign uses <strong>standard 5e XP thresholds</strong> for leveling.
-                    XP is earned from completing quests and encounters.
+                    This campaign uses <strong>standard 5e XP thresholds</strong> for leveling. XP is earned from completing quests and encounters.
                 </p>
                 <XPTable />
             </Section>
 
             <Section title="Downtime">
                 <p>
-                    Between sessions, your character can do <strong>one</strong> of the following:
+                    Between sessions, your character can spend each day doing <strong>one</strong> of the following:
                 </p>
                 <ul>
                     <li>
-                        <strong>Train</strong> — work toward proficiency in a tool or language.
-                        It takes <strong>60 days</strong> to gain proficiency.
-                        Each day you train with a professional counts for 2 days.
-                        Training with a professional costs <strong>1 gp per day</strong>.
-                        Self-taught training is possible if materials are available, but takes twice as long.
-                        Downtime days do not need to be consecutive.
+                        <strong>Train</strong> — work toward proficiency in a tool or language. It takes <strong>60 days</strong> to gain proficiency. Each day
+                        you train with a professional counts for 2 days. Training with a professional costs <strong>1 gp per day</strong>. Self-taught training
+                        is possible if materials are available, but takes twice as long. Downtime days do not need to be consecutive.
                     </li>
                     <li>
                         <strong>Shop</strong> — cost depends on what you buy. A list will be available after the first session.
@@ -82,7 +77,8 @@ export function Characters() {
                         Replacement PCs start at <strong>level 1</strong> by default. This may change later.
                     </li>
                     <li>
-                        <strong>Entering play:</strong> your new character walked into the Holdfast looking for work. It's a refugee town. Nobody asks questions.
+                        <strong>Entering play:</strong> your new character walked into the Holdfast looking for work. It's a refugee town. Nobody asks
+                        questions.
                     </li>
                 </ul>
             </Section>
