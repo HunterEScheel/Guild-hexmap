@@ -9,7 +9,7 @@ const BATCH_SIZE = 12;
 // monster stat blocks are fetched while still giving the composer variety.
 const POOL_TARGET = 30;
 
-export interface MonsterRef {
+interface MonsterRef {
   index: string;
   name: string;
 }
@@ -60,15 +60,6 @@ function shuffle<T>(arr: T[]): T[] {
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy;
-}
-
-export async function listMonsters(): Promise<MonsterRef[]> {
-  return fetchMonsterList();
-}
-
-export async function getCreature(index: string): Promise<Creature | null> {
-  const monster = await fetchMonster(index);
-  return monster ? toCreature(monster) : null;
 }
 
 // Builds a random encounter on the fly: scans the SRD monster list in random
