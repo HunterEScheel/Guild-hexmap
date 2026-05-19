@@ -48,8 +48,13 @@ export interface EncounterGroup {
 export interface GeneratedEncounter {
   groups: EncounterGroup[];
   totalCreatures: number;
+  /** Raw XP sum before encounter multiplier. */
   totalCombatPoints: number;
-  /** True when total combat points fall inside the tier's XP range. */
+  /** Multiplier based on creature count (1, 1.5, 2, 2.5, 3, or 4). */
+  encounterMultiplier: number;
+  /** Adjusted XP (raw × multiplier) — used for difficulty budgeting. */
+  adjustedXP: number;
+  /** True when adjusted XP falls inside the tier's XP range. */
   withinBudget: boolean;
 }
 
@@ -174,6 +179,16 @@ function pickTypeCount(maxTypes: number): number {
   return Math.min(MAX_TYPES, maxTypes);
 }
 
+// 5e encounter multiplier based on number of creatures.
+export function encounterMultiplier(creatureCount: number): number {
+  if (creatureCount <= 1) return 1;
+  if (creatureCount <= 2) return 1.5;
+  if (creatureCount <= 6) return 2;
+  if (creatureCount <= 10) return 2.5;
+  if (creatureCount <= 14) return 3;
+  return 4;
+}
+
 function summarize(
   groups: EncounterGroup[],
   minXP: number,
@@ -184,11 +199,15 @@ function summarize(
     (sum, g) => sum + g.count * g.creature.combatPoints,
     0
   );
+  const multiplier = encounterMultiplier(totalCreatures);
+  const adjustedXP = Math.floor(totalCombatPoints * multiplier);
   return {
     groups,
     totalCreatures,
     totalCombatPoints,
-    withinBudget: totalCombatPoints >= minXP && totalCombatPoints <= maxXP,
+    encounterMultiplier: multiplier,
+    adjustedXP,
+    withinBudget: adjustedXP >= minXP && adjustedXP <= maxXP,
   };
 }
 
@@ -232,9 +251,9 @@ export function composeEncounter(
     if (encounter.withinBudget) return encounter;
 
     const distance =
-      encounter.totalCombatPoints < minXP
-        ? minXP - encounter.totalCombatPoints
-        : encounter.totalCombatPoints - maxXP;
+      encounter.adjustedXP < minXP
+        ? minXP - encounter.adjustedXP
+        : encounter.adjustedXP - maxXP;
     if (distance < bestDistance) {
       bestDistance = distance;
       best = encounter;

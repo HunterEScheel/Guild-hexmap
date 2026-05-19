@@ -306,7 +306,7 @@ function EncounterResult({
         }}
       >
         <span style={{ color: "#9ca3af" }}>
-          {encounter.totalCreatures} creatures
+          {encounter.totalCreatures} creatures (&times;{encounter.encounterMultiplier})
         </span>
         <span
           style={{
@@ -314,8 +314,11 @@ function EncounterResult({
             fontWeight: 600,
           }}
         >
-          {encounter.totalCombatPoints.toLocaleString()} CP
+          {encounter.adjustedXP.toLocaleString()} XP
         </span>
+      </div>
+      <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
+        Raw: {encounter.totalCombatPoints.toLocaleString()} XP
       </div>
       {!encounter.withinBudget && (
         <p style={{ fontSize: 10, color: "#ef4444", margin: "4px 0 0" }}>

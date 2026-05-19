@@ -31,6 +31,57 @@ alter table bestiary enable row level security;
 create policy "Allow all access to bestiary" on bestiary
   for all using (true) with check (true);
 
+-- Shop inventory (current stock with quantities)
+create table if not exists shop_inventory (
+  id uuid default gen_random_uuid() primary key,
+  item_index text not null,
+  item_name text not null,
+  rarity text not null default 'common',
+  description text not null default '',
+  quantity integer not null default 1,
+  price text not null default '',
+  created_at timestamptz default now()
+);
+
+alter table shop_inventory enable row level security;
+create policy "Allow all access to shop_inventory" on shop_inventory
+  for all using (true) with check (true);
+
+-- Restock rules (admin-configured per-item dice restocking)
+create table if not exists shop_restock_rules (
+  id uuid default gen_random_uuid() primary key,
+  item_index text not null unique,
+  item_name text not null,
+  rarity text not null default 'common',
+  dice text not null default '1d4',
+  price text not null default '',
+  enabled boolean not null default true,
+  created_at timestamptz default now()
+);
+
+alter table shop_restock_rules enable row level security;
+create policy "Allow all access to shop_restock_rules" on shop_restock_rules
+  for all using (true) with check (true);
+
+-- Restock settings (rarity counts)
+create table if not exists shop_restock_settings (
+  rarity text primary key,
+  count integer not null default 0
+);
+
+alter table shop_restock_settings enable row level security;
+create policy "Allow all access to shop_restock_settings" on shop_restock_settings
+  for all using (true) with check (true);
+
+-- Default restock settings
+insert into shop_restock_settings (rarity, count) values
+  ('common', 100),
+  ('uncommon', 15),
+  ('rare', 4),
+  ('very rare', 0),
+  ('legendary', 0)
+on conflict (rarity) do nothing;
+
 -- Migration: Add scheduled_date to quests
 -- alter table quests add column scheduled_date date;
 

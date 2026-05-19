@@ -66,6 +66,51 @@ export function About() {
                     world is explored and quests are completed.
                 </p>
             </Section>
+
+            <Section title="Homebrew Rules">
+                <p>
+                    Beyond 5.5e standard, these are the only mechanical changes:
+                </p>
+
+                <h3 style={{ fontSize: 16, color: "#e8e8f0", marginTop: 20, marginBottom: 8 }}>
+                    Natural 20s and 1s
+                </h3>
+                <ul>
+                    <li>
+                        <strong>Nat 20 on a check:</strong> +5 to the total (instead of auto-success).
+                    </li>
+                    <li>
+                        <strong>Nat 1 on a check:</strong> &minus;5 to the total (instead of auto-fail).
+                    </li>
+                    <li>
+                        <strong>Nat 20 on a saving throw:</strong> negates all effects.
+                    </li>
+                    <li>
+                        <strong>Nat 1 on a saving throw:</strong> doubles all effects.
+                    </li>
+                </ul>
+
+                <h3 style={{ fontSize: 16, color: "#e8e8f0", marginTop: 20, marginBottom: 8 }}>
+                    Combat
+                </h3>
+                <ul>
+                    <li>
+                        <strong>Critical hits:</strong> any attack that beats AC by 10 or more is a critical hit.
+                    </li>
+                </ul>
+
+                <h3 style={{ fontSize: 16, color: "#e8e8f0", marginTop: 20, marginBottom: 8 }}>
+                    Simplified Tracking
+                </h3>
+                <ul>
+                    <li>
+                        <strong>Spell components:</strong> only tracking components for spells with a stated material cost.
+                    </li>
+                    <li>
+                        <strong>Encumbrance:</strong> no need to strictly track until someone pushes the limits.
+                    </li>
+                </ul>
+            </Section>
         </div>
     );
 }

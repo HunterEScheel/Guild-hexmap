@@ -9,6 +9,8 @@ import { Legend } from "./components/Legend";
 import { BountyBoard } from "./components/BountyBoard";
 import { DatePickerModal } from "./components/DatePickerModal";
 import { About } from "./components/About";
+import { Characters } from "./components/Characters";
+import { Shop } from "./components/Shop";
 import { ActiveQuests } from "./components/ActiveQuests";
 import {
   useHexData,
@@ -25,7 +27,7 @@ import { useAdminMode } from "./hooks/useAdminMode";
 import type { ChallengeTier, Quest, TerrainType } from "./types";
 import "./index.css";
 
-type Page = "map" | "bounties" | "active-quests" | "about";
+type Page = "map" | "bounties" | "active-quests" | "shop" | "characters" | "about";
 
 function App() {
   const [page, setPage] = useState<Page>("map");
@@ -217,6 +219,8 @@ function App() {
           ).length}
         />
         <NavTab label="Bounty Board" active={page === "bounties"} onClick={() => setPage("bounties")} />
+        <NavTab label="Shop" active={page === "shop"} onClick={() => setPage("shop")} />
+        <NavTab label="Characters" active={page === "characters"} onClick={() => setPage("characters")} />
         <NavTab label="About" active={page === "about"} onClick={() => setPage("about")} />
       </nav>
 
@@ -296,6 +300,14 @@ function App() {
       ) : page === "bounties" ? (
         <div style={{ flex: 1, overflow: "auto" }}>
           <BountyBoard />
+        </div>
+      ) : page === "shop" ? (
+        <div style={{ flex: 1, overflow: "auto" }}>
+          <Shop isAdmin={isAdmin} />
+        </div>
+      ) : page === "characters" ? (
+        <div style={{ flex: 1, overflow: "auto" }}>
+          <Characters />
         </div>
       ) : (
         <div style={{ flex: 1, overflow: "auto" }}>
