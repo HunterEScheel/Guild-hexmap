@@ -264,10 +264,6 @@ export function HexGrid({
                   )}
                   {/* Start pin */}
                   <QuestPin x={start.x} y={start.y} color={color} size={pinSize} />
-                  {/* End pin */}
-                  {end && (
-                    <QuestPin x={end.x} y={end.y} color={color} size={pinSize} />
-                  )}
                 </g>
               );
             })}
