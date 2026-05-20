@@ -27,9 +27,9 @@ export function Characters() {
                         All characters start at <strong>level 1</strong>.
                     </li>
                     <li>
-                        <strong>Ability scores</strong> are generated in pairs. You choose 2 stats and their order, then roll <strong>4d6 drop lowest</strong>.
-                        The first stat uses the roll; the second stat equals <strong>(11 &minus; roll) + 11</strong>. This guarantees each pair averages 11.
-                        Repeat for all 3 pairs (6 stats total).
+                        <strong>Ability scores:</strong> roll <strong>4d6 drop lowest</strong> three times — those are 3 of your stats. The other 3 stats are
+                        each derived by the mirror formula <strong>22 &minus; roll</strong> (i.e. <strong>(11 &minus; roll) + 11</strong>), pairing with one of your rolled
+                        values so each pair averages 11. You then <strong>assign the 6 numbers to STR, DEX, CON, INT, WIS, CHA in whatever order you choose</strong>.
                     </li>
                     <li>
                         Use <strong>standard equipment</strong> from your class and background, plus <strong>10 gold</strong> starting money.
