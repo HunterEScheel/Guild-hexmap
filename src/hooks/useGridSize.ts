@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { HexData, Quest } from "../types";
+import type { HexData } from "../types";
 import { hexNeighbors } from "../utils/hexMath";
 
 export interface GridSize {
@@ -19,15 +19,16 @@ export interface GridSize {
  * - Every filled hex (terrain !== "unknown").
  * - The 6 hex neighbors of each filled hex, so the only "unknown" tiles
  *   that ever appear are the ones adjacent to a filled tile.
- * - Quest start/end hex positions, so a quest pin always has a tile under it.
  *
- * When nothing is filled and there are no quests, falls back to a 5x5 starter
- * grid so an admin has somewhere to paint.
+ * Quests do NOT contribute to the rendered cells or bounds. A quest pin in
+ * a hex that isn't adjacent to any filled tile floats in the void — its pin
+ * is still drawn at its world position, but no tile is rendered under it
+ * and the viewport doesn't widen to include it.
+ *
+ * When no filled hexes exist, falls back to a 5x5 starter grid so an admin
+ * has somewhere to paint.
  */
-export function useGridSize(
-  hexes: Map<string, HexData>,
-  quests: Quest[] = []
-): GridSize {
+export function useGridSize(hexes: Map<string, HexData>): GridSize {
   return useMemo(() => {
     const cellSet = new Map<string, { col: number; row: number }>();
     const addCell = (col: number, row: number) => {
@@ -40,12 +41,6 @@ export function useGridSize(
       addCell(hex.col, hex.row);
       for (const n of hexNeighbors(hex.col, hex.row)) {
         addCell(n.col, n.row);
-      }
-    }
-    for (const q of quests) {
-      addCell(q.hexCol, q.hexRow);
-      if (q.endHexCol != null && q.endHexRow != null) {
-        addCell(q.endHexCol, q.endHexRow);
       }
     }
 
@@ -87,5 +82,5 @@ export function useGridSize(
       totalCols: maxCol - minCol + 1,
       totalRows: maxRow - minRow + 1,
     };
-  }, [hexes, quests]);
+  }, [hexes]);
 }
