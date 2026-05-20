@@ -30,7 +30,7 @@ export function HexGrid({
   selectedHex,
   onHexSelect,
 }: HexGridProps) {
-  const grid = useGridSize(hexes);
+  const grid = useGridSize(hexes, quests);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewBox, setViewBox] = useState({ x: 0, y: 0, w: 0, h: 0 });

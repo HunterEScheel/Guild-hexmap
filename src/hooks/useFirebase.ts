@@ -135,6 +135,10 @@ export async function setHexTerrain(
   row: number,
   terrain: TerrainType
 ): Promise<void> {
+  if (terrain === "unknown") {
+    await supabase.from("hexes").delete().eq("col", col).eq("row", row);
+    return;
+  }
   await supabase.from("hexes").upsert(
     { col, row, terrain },
     { onConflict: "col,row" }
