@@ -11,7 +11,6 @@ const TERRAIN_TYPES: TerrainType[] = [
   "water",
   "allied_city",
   "unallied_city",
-  "unknown",
 ];
 
 const TIER_CONFIG: { tier: ChallengeTier; label: string; color: string }[] = [
@@ -37,11 +36,14 @@ export function AdminToolbar({
   onSelectTier,
   onLogout,
 }: AdminToolbarProps) {
-  const paintingLabel = selectedTerrain
-    ? `Painting: ${TERRAIN_LABELS[selectedTerrain]}`
-    : selectedTier != null
-      ? `Painting: Tier ${selectedTier}`
-      : null;
+  const isErasing = selectedTerrain === "unknown";
+  const paintingLabel = isErasing
+    ? "Erasing"
+    : selectedTerrain
+      ? `Painting: ${TERRAIN_LABELS[selectedTerrain]}`
+      : selectedTier != null
+        ? `Painting: Tier ${selectedTier}`
+        : null;
 
   return (
     <div
@@ -90,6 +92,33 @@ export function AdminToolbar({
           }}
         />
       ))}
+
+      <button
+        onClick={() => {
+          onSelectTier(null);
+          onSelectTerrain(isErasing ? null : "unknown");
+        }}
+        title="Erase tile (removes terrain and tier, keeps quests)"
+        style={{
+          height: 28,
+          borderRadius: 4,
+          border: isErasing ? "2px solid #fff" : "2px solid #4b5563",
+          background: "#1e1e36",
+          color: "#e8e8f0",
+          cursor: "pointer",
+          outline: "none",
+          fontSize: 11,
+          fontWeight: 700,
+          padding: "0 10px",
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          marginLeft: 4,
+        }}
+      >
+        <span style={{ fontSize: 14, lineHeight: 1 }}>&#10006;</span>
+        Erase
+      </button>
 
       <div
         style={{
