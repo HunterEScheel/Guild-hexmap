@@ -241,7 +241,7 @@ function InitiativeRow({
           <span style={{ color: "#e8e8f0", fontWeight: 600, fontSize: 14 }}>
             {entry.name}
           </span>
-          {entry.isCreature && (
+          {entry.isCreature && isAdmin && (
             <span style={{ color: "#9ca3af", fontSize: 12, marginLeft: 8 }}>
               CR {formatCr(entry.cr ?? 0)} &middot; AC {entry.ac}
             </span>
