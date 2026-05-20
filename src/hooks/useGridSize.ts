@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 import type { HexData, Quest } from "../types";
+import { hexNeighbors } from "../utils/hexMath";
 
 export interface GridSize {
+  cells: Array<{ col: number; row: number }>;
   minCol: number;
   maxCol: number;
   minRow: number;
@@ -11,47 +13,51 @@ export interface GridSize {
 }
 
 /**
- * Compute the visible grid bounds from filled hexes and quest positions.
+ * Decide which hex cells to render and the bounding box that encloses them.
  *
- * - Ignores hexes with terrain "unknown" so the grid shrinks when filled
- *   hexes are reverted.
- * - Includes quest start and end hex positions so a quest never falls
- *   outside the visible grid (e.g. if its underlying hex is removed).
- * - Extends 1 hex in each direction.
- * - When nothing contributes to the bounds, returns a 5x5 starter grid.
+ * Cells included:
+ * - Every filled hex (terrain !== "unknown").
+ * - The 6 hex neighbors of each filled hex, so the only "unknown" tiles
+ *   that ever appear are the ones adjacent to a filled tile.
+ * - Quest start/end hex positions, so a quest pin always has a tile under it.
+ *
+ * When nothing is filled and there are no quests, falls back to a 5x5 starter
+ * grid so an admin has somewhere to paint.
  */
 export function useGridSize(
   hexes: Map<string, HexData>,
   quests: Quest[] = []
 ): GridSize {
   return useMemo(() => {
-    let bMinCol = Infinity;
-    let bMaxCol = -Infinity;
-    let bMinRow = Infinity;
-    let bMaxRow = -Infinity;
-    let anyPoint = false;
-
-    const expand = (col: number, row: number) => {
-      if (col < bMinCol) bMinCol = col;
-      if (col > bMaxCol) bMaxCol = col;
-      if (row < bMinRow) bMinRow = row;
-      if (row > bMaxRow) bMaxRow = row;
-      anyPoint = true;
+    const cellSet = new Map<string, { col: number; row: number }>();
+    const addCell = (col: number, row: number) => {
+      const key = `${col}_${row}`;
+      if (!cellSet.has(key)) cellSet.set(key, { col, row });
     };
 
     for (const hex of hexes.values()) {
       if (hex.terrain === "unknown") continue;
-      expand(hex.col, hex.row);
+      addCell(hex.col, hex.row);
+      for (const n of hexNeighbors(hex.col, hex.row)) {
+        addCell(n.col, n.row);
+      }
     }
     for (const q of quests) {
-      expand(q.hexCol, q.hexRow);
+      addCell(q.hexCol, q.hexRow);
       if (q.endHexCol != null && q.endHexRow != null) {
-        expand(q.endHexCol, q.endHexRow);
+        addCell(q.endHexCol, q.endHexRow);
       }
     }
 
-    if (!anyPoint) {
+    if (cellSet.size === 0) {
+      const cells: Array<{ col: number; row: number }> = [];
+      for (let c = 0; c < 5; c++) {
+        for (let r = 0; r < 5; r++) {
+          cells.push({ col: c, row: r });
+        }
+      }
       return {
+        cells,
         minCol: 0,
         maxCol: 4,
         minRow: 0,
@@ -61,12 +67,19 @@ export function useGridSize(
       };
     }
 
-    const minCol = bMinCol - 1;
-    const maxCol = bMaxCol + 1;
-    const minRow = bMinRow - 1;
-    const maxRow = bMaxRow + 1;
+    let minCol = Infinity;
+    let maxCol = -Infinity;
+    let minRow = Infinity;
+    let maxRow = -Infinity;
+    for (const c of cellSet.values()) {
+      if (c.col < minCol) minCol = c.col;
+      if (c.col > maxCol) maxCol = c.col;
+      if (c.row < minRow) minRow = c.row;
+      if (c.row > maxRow) maxRow = c.row;
+    }
 
     return {
+      cells: Array.from(cellSet.values()),
       minCol,
       maxCol,
       minRow,

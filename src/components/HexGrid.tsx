@@ -160,58 +160,56 @@ export function HexGrid({
   const selectionOverlays: React.ReactNode[] = [];
   const eraseHighlights: React.ReactNode[] = [];
 
-  for (let col = grid.minCol; col <= grid.maxCol; col++) {
-    for (let row = grid.minRow; row <= grid.maxRow; row++) {
-      const key = `${col}_${row}`;
-      const hexData = hexes.get(key);
-      const terrain = hexData?.terrain ?? "unknown";
-      const isSelected = selectedHex?.col === col && selectedHex?.row === row;
+  for (const { col, row } of grid.cells) {
+    const key = `${col}_${row}`;
+    const hexData = hexes.get(key);
+    const terrain = hexData?.terrain ?? "unknown";
+    const isSelected = selectedHex?.col === col && selectedHex?.row === row;
 
-      fills.push(
-        <HexTile
-          key={key}
-          col={col}
-          row={row}
-          terrain={terrain}
-          onClick={onHexSelect}
+    fills.push(
+      <HexTile
+        key={key}
+        col={col}
+        row={row}
+        terrain={terrain}
+        onClick={onHexSelect}
+      />
+    );
+
+    if (isSelected) {
+      selectionOverlays.push(
+        <polygon
+          key={`sel-${key}`}
+          points={hexPointsString(col, row)}
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth={3}
+          pointerEvents="none"
         />
       );
+    }
 
-      if (isSelected) {
-        selectionOverlays.push(
-          <polygon
-            key={`sel-${key}`}
-            points={hexPointsString(col, row)}
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth={3}
-            pointerEvents="none"
-          />
-        );
-      }
-
-      if (
-        isErasing &&
-        hasFilled &&
-        hexData &&
-        hexData.terrain !== "unknown" &&
-        (col === fMinCol ||
-          col === fMaxCol ||
-          row === fMinRow ||
-          row === fMaxRow)
-      ) {
-        eraseHighlights.push(
-          <polygon
-            key={`erase-${key}`}
-            className="erase-highlight"
-            points={hexPointsString(col, row)}
-            fill="none"
-            stroke="#ef4444"
-            strokeWidth={3}
-            pointerEvents="none"
-          />
-        );
-      }
+    if (
+      isErasing &&
+      hasFilled &&
+      hexData &&
+      hexData.terrain !== "unknown" &&
+      (col === fMinCol ||
+        col === fMaxCol ||
+        row === fMinRow ||
+        row === fMaxRow)
+    ) {
+      eraseHighlights.push(
+        <polygon
+          key={`erase-${key}`}
+          className="erase-highlight"
+          points={hexPointsString(col, row)}
+          fill="none"
+          stroke="#ef4444"
+          strokeWidth={3}
+          pointerEvents="none"
+        />
+      );
     }
   }
 

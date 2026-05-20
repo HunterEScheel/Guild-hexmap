@@ -319,6 +319,7 @@ function App() {
               quests={quests}
               selectedHex={selectedHex}
               onHexSelect={handleHexSelect}
+              isErasing={isAdmin && selectedTerrain === "unknown"}
             />
             <Legend />
 
