@@ -10,6 +10,7 @@ interface HexGridProps {
   quests: Quest[];
   selectedHex: { col: number; row: number } | null;
   onHexSelect: (col: number, row: number) => void;
+  isErasing?: boolean;
 }
 
 function computeContentBox(grid: { minCol: number; maxCol: number; minRow: number; maxRow: number }) {
@@ -29,6 +30,7 @@ export function HexGrid({
   quests,
   selectedHex,
   onHexSelect,
+  isErasing = false,
 }: HexGridProps) {
   const grid = useGridSize(hexes, quests);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -137,8 +139,26 @@ export function HexGrid({
     setIsPanning(false);
   }, []);
 
+  // Perimeter of filled (non-unknown) hexes — these are the hexes that, if
+  // erased, could let the grid shrink. Quests are intentionally excluded;
+  // they also constrain bounds, but erasing can't remove them.
+  let fMinCol = Infinity;
+  let fMaxCol = -Infinity;
+  let fMinRow = Infinity;
+  let fMaxRow = -Infinity;
+  let hasFilled = false;
+  for (const hex of hexes.values()) {
+    if (hex.terrain === "unknown") continue;
+    if (hex.col < fMinCol) fMinCol = hex.col;
+    if (hex.col > fMaxCol) fMaxCol = hex.col;
+    if (hex.row < fMinRow) fMinRow = hex.row;
+    if (hex.row > fMaxRow) fMaxRow = hex.row;
+    hasFilled = true;
+  }
+
   const fills: React.ReactNode[] = [];
   const selectionOverlays: React.ReactNode[] = [];
+  const eraseHighlights: React.ReactNode[] = [];
 
   for (let col = grid.minCol; col <= grid.maxCol; col++) {
     for (let row = grid.minRow; row <= grid.maxRow; row++) {
@@ -169,6 +189,29 @@ export function HexGrid({
           />
         );
       }
+
+      if (
+        isErasing &&
+        hasFilled &&
+        hexData &&
+        hexData.terrain !== "unknown" &&
+        (col === fMinCol ||
+          col === fMaxCol ||
+          row === fMinRow ||
+          row === fMaxRow)
+      ) {
+        eraseHighlights.push(
+          <polygon
+            key={`erase-${key}`}
+            className="erase-highlight"
+            points={hexPointsString(col, row)}
+            fill="none"
+            stroke="#ef4444"
+            strokeWidth={3}
+            pointerEvents="none"
+          />
+        );
+      }
     }
   }
 
@@ -192,6 +235,7 @@ export function HexGrid({
         onMouseLeave={handleMouseUp}
       >
         <g>{fills}</g>
+        <g>{eraseHighlights}</g>
         <g>{selectionOverlays}</g>
         <g>
           {quests
