@@ -28,8 +28,8 @@ export function Characters() {
                     </li>
                     <li>
                         <strong>Ability scores:</strong> roll <strong>4d6 drop lowest</strong> three times — those are 3 of your stats. The other 3 stats are
-                        each derived by the mirror formula <strong>22 &minus; roll</strong> (i.e. <strong>(11 &minus; roll) + 11</strong>), pairing with one of your rolled
-                        values so each pair averages 11. You then <strong>assign the 6 numbers to STR, DEX, CON, INT, WIS, CHA in whatever order you choose</strong>.
+                        each derived by the mirror formula <strong>22 &minus; roll</strong>, pairing with one of your rolled values so each pair averages 11.
+                        You then <strong>assign the 6 numbers to STR, DEX, CON, INT, WIS, CHA in whatever order you choose</strong>.
                     </li>
                     <li>
                         Use <strong>standard equipment</strong> from your class and background, plus <strong>10 gold</strong> starting money.
