@@ -56,7 +56,11 @@ export function Shop({ isAdmin, adminPin }: ShopProps) {
         <TabButton label="Magic Items" active={tab === "magic"} onClick={() => setTab("magic")} />
       </div>
 
-      {tab === "equipment" ? <EquipmentShop isAdmin={isAdmin} /> : <MagicShop isAdmin={isAdmin} />}
+      {tab === "equipment" ? (
+        <EquipmentShop isAdmin={isAdmin} />
+      ) : (
+        <MagicShop isAdmin={isAdmin} adminPin={adminPin} />
+      )}
     </div>
   );
 }
@@ -181,7 +185,13 @@ const RARITY_COLORS: Record<string, string> = {
   legendary: "#fbbf24",
 };
 
-function MagicShop({ isAdmin }: { isAdmin: boolean }) {
+function MagicShop({
+  isAdmin,
+  adminPin,
+}: {
+  isAdmin: boolean;
+  adminPin: string | null;
+}) {
   const [inventory, setInventory] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -255,7 +265,7 @@ function MagicShop({ isAdmin }: { isAdmin: boolean }) {
       )}
 
       {showAdmin && isAdmin && (
-        <RestockAdmin onSettingsChanged={loadInventory} />
+        <RestockAdmin onSettingsChanged={loadInventory} adminPin={adminPin} />
       )}
 
       {inventory.length === 0 ? (
@@ -408,7 +418,13 @@ function MagicShop({ isAdmin }: { isAdmin: boolean }) {
 
 // --- Admin: Restock Settings ---
 
-function RestockAdmin({ onSettingsChanged }: { onSettingsChanged: () => void }) {
+function RestockAdmin({
+  onSettingsChanged,
+  adminPin,
+}: {
+  onSettingsChanged: () => void;
+  adminPin: string | null;
+}) {
   const [settings, setSettings] = useState<RestockSettings[]>([]);
   const [rules, setRules] = useState<RestockRule[]>([]);
   const [loading, setLoading] = useState(true);
