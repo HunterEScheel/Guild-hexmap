@@ -13,6 +13,8 @@ html, body, #root {
   background: #0f0f1a;
   font-family: 'Segoe UI', system-ui, sans-serif;
   color: #e8e8f0;
+  overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
 h1, h2, h3 {

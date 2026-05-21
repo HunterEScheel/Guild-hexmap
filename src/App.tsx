@@ -29,6 +29,7 @@ import {
   clearInitiativeTracker,
 } from "./hooks/useFirebase";
 import { useAdminMode } from "./hooks/useAdminMode";
+import { useIsMobile } from "./hooks/useIsMobile";
 import type { GeneratedEncounter } from "./data/bestiary";
 import type { ChallengeTier, Quest, TerrainType } from "./types";
 import "./index.css";
@@ -44,6 +45,8 @@ function App() {
   const hexes = useHexData();
   const quests = useQuests();
   const initiativeEntries = useInitiative();
+  const isMobile = useIsMobile();
+  const [sidePanelOpen, setSidePanelOpen] = useState(!isMobile);
 
   // Selection
   const [selectedHex, setSelectedHex] = useState<{
@@ -93,6 +96,8 @@ function App() {
       setSelectedHex((prev) =>
         prev?.col === col && prev?.row === row ? null : { col, row }
       );
+      // Selecting a hex auto-opens the (possibly collapsed) info panel.
+      setSidePanelOpen(true);
     },
     [isAdmin, selectedTerrain, selectedTier]
   );
@@ -233,10 +238,11 @@ function App() {
     <div
       style={{
         width: "100vw",
-        height: "100vh",
+        height: "100dvh",
         display: "flex",
         flexDirection: "column",
         background: "#0f0f1a",
+        overflow: "hidden",
       }}
     >
       {/* Top Navigation */}
@@ -312,8 +318,24 @@ function App() {
 
       {/* Page Content */}
       {topPage === "guild" && guildSub === "map" ? (
-        <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-          <div style={{ flex: 1, position: "relative" }}>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "row",
+            overflow: "hidden",
+            minHeight: 0,
+            position: "relative",
+          }}
+        >
+          <div
+            style={{
+              flex: "1 1 0",
+              position: "relative",
+              minHeight: 0,
+              minWidth: 0,
+            }}
+          >
             <HexGrid
               hexes={hexes}
               quests={quests}
@@ -321,23 +343,23 @@ function App() {
               onHexSelect={handleHexSelect}
               isErasing={isAdmin && selectedTerrain === "unknown"}
             />
-            <Legend />
+            <Legend isMobile={isMobile} sidePanelOpen={sidePanelOpen} />
 
             {!isAdmin && (
               <button
                 onClick={promptPin}
                 title="Admin Login"
                 style={{
-                  position: "fixed",
+                  position: "absolute",
                   bottom: 16,
                   left: 16,
-                  width: 36,
-                  height: 36,
+                  width: 44,
+                  height: 44,
                   borderRadius: 8,
                   background: "#1e1e36",
                   border: "1px solid #2e2e4a",
                   color: "#6b7280",
-                  fontSize: 18,
+                  fontSize: 20,
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
@@ -346,6 +368,35 @@ function App() {
                 }}
               >
                 &#128274;
+              </button>
+            )}
+
+            {/* Reopen tab when the side panel is collapsed */}
+            {!sidePanelOpen && (
+              <button
+                onClick={() => setSidePanelOpen(true)}
+                title="Show info panel"
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  right: 0,
+                  transform: "translateY(-50%)",
+                  width: 28,
+                  height: 64,
+                  borderRadius: "8px 0 0 8px",
+                  background: "#1e1e36",
+                  border: "1px solid #2e2e4a",
+                  borderRight: "none",
+                  color: "#9ca3af",
+                  fontSize: 18,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 90,
+                }}
+              >
+                &#9664;
               </button>
             )}
           </div>
@@ -362,6 +413,9 @@ function App() {
             onDeleteQuest={handleDeleteQuest}
             onAddQuest={handleAddQuest}
             onRunEncounter={isAdmin ? handleRunEncounter : undefined}
+            isMobile={isMobile}
+            isOpen={sidePanelOpen}
+            onClose={() => setSidePanelOpen(false)}
           />
         </div>
       ) : topPage === "guild" && guildSub === "active-quests" ? (

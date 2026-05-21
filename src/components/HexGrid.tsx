@@ -37,7 +37,15 @@ export function HexGrid({
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewBox, setViewBox] = useState({ x: 0, y: 0, w: 0, h: 0 });
   const [isPanning, setIsPanning] = useState(false);
-  const panStart = useRef({ x: 0, y: 0 });
+
+  // Pointer-driven pan/pinch state. Refs (not state) because high-frequency
+  // pointermove events shouldn't trigger React re-renders.
+  const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const dragStart = useRef<{ x: number; y: number } | null>(null);
+  const dragMoved = useRef(false);
+  const suppressNextClick = useRef(false);
+  const lastPinchDist = useRef<number | null>(null);
+  const DRAG_THRESHOLD = 6;
 
   // Fit content to viewport, preserving aspect ratio
   useEffect(() => {
@@ -103,40 +111,104 @@ export function HexGrid({
     []
   );
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.button !== 1 && e.button !== 0) return;
-      if (e.button === 1 || e.shiftKey) {
-        setIsPanning(true);
-        panStart.current = { x: e.clientX, y: e.clientY };
-        e.preventDefault();
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<SVGSVGElement>) => {
+      // Only primary mouse button, middle button, or touch/pen — ignore right-click.
+      if (e.pointerType === "mouse" && e.button !== 0 && e.button !== 1) return;
+      svgRef.current?.setPointerCapture(e.pointerId);
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pointers.current.size === 1) {
+        dragStart.current = { x: e.clientX, y: e.clientY };
+        dragMoved.current = false;
+        // Mouse middle-button or shift-click: pan immediately, no threshold.
+        if (e.pointerType === "mouse" && (e.button === 1 || e.shiftKey)) {
+          dragMoved.current = true;
+          setIsPanning(true);
+          e.preventDefault();
+        }
+      } else if (pointers.current.size === 2) {
+        const ps = Array.from(pointers.current.values());
+        lastPinchDist.current = Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y);
+        // Two-finger gesture cancels any in-progress single-pointer drag.
+        dragStart.current = null;
       }
     },
     []
   );
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      if (!isPanning) return;
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<SVGSVGElement>) => {
+      if (!pointers.current.has(e.pointerId)) return;
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       const svg = svgRef.current;
       if (!svg) return;
-
       const rect = svg.getBoundingClientRect();
-      const dx = ((e.clientX - panStart.current.x) / rect.width) * viewBox.w;
-      const dy = ((e.clientY - panStart.current.y) / rect.height) * viewBox.h;
 
-      setViewBox((prev) => ({
-        ...prev,
-        x: prev.x - dx,
-        y: prev.y - dy,
-      }));
-      panStart.current = { x: e.clientX, y: e.clientY };
+      if (pointers.current.size === 1 && dragStart.current) {
+        const dx = e.clientX - dragStart.current.x;
+        const dy = e.clientY - dragStart.current.y;
+        if (!dragMoved.current) {
+          if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+          dragMoved.current = true;
+          setIsPanning(true);
+        }
+        const vbDx = (dx / rect.width) * viewBox.w;
+        const vbDy = (dy / rect.height) * viewBox.h;
+        setViewBox((prev) => ({ ...prev, x: prev.x - vbDx, y: prev.y - vbDy }));
+        dragStart.current = { x: e.clientX, y: e.clientY };
+      } else if (pointers.current.size === 2 && lastPinchDist.current != null) {
+        const ps = Array.from(pointers.current.values());
+        const dist = Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y);
+        if (dist <= 0) return;
+        const zoomFactor = lastPinchDist.current / dist;
+        lastPinchDist.current = dist;
+        const midX = ((ps[0].x + ps[1].x) / 2 - rect.left) / rect.width;
+        const midY = ((ps[0].y + ps[1].y) / 2 - rect.top) / rect.height;
+        setViewBox((prev) => {
+          const newW = prev.w * zoomFactor;
+          const newH = prev.h * zoomFactor;
+          return {
+            x: prev.x - (newW - prev.w) * midX,
+            y: prev.y - (newH - prev.h) * midY,
+            w: newW,
+            h: newH,
+          };
+        });
+      }
     },
-    [isPanning, viewBox.w, viewBox.h]
+    [viewBox.w, viewBox.h]
   );
 
-  const handleMouseUp = useCallback(() => {
-    setIsPanning(false);
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<SVGSVGElement>) => {
+      if (!pointers.current.has(e.pointerId)) return;
+      pointers.current.delete(e.pointerId);
+      try {
+        svgRef.current?.releasePointerCapture(e.pointerId);
+      } catch {
+        // releasePointerCapture throws if capture was already released; ignore.
+      }
+      if (pointers.current.size < 2) lastPinchDist.current = null;
+      if (pointers.current.size === 0) {
+        if (dragMoved.current) {
+          // Swallow the synthetic click that would follow a drag-ending pointerup.
+          suppressNextClick.current = true;
+        }
+        dragStart.current = null;
+        dragMoved.current = false;
+        setIsPanning(false);
+      }
+    },
+    []
+  );
+
+  // If a drag just ended, suppress the click on the underlying hex polygon.
+  const handleClickCapture = useCallback((e: React.MouseEvent) => {
+    if (suppressNextClick.current) {
+      suppressNextClick.current = false;
+      e.stopPropagation();
+    }
   }, []);
 
   // Perimeter of filled (non-unknown) hexes — these are the hexes that, if
@@ -248,12 +320,15 @@ export function HexGrid({
           width: "100%",
           height: "100%",
           cursor: isPanning ? "grabbing" : "default",
+          touchAction: "none",
         }}
         onWheel={handleWheel}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        onClickCapture={handleClickCapture}
       >
         <g>{fills}</g>
         <g>{eraseHighlights}</g>

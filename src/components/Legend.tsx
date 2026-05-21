@@ -30,15 +30,24 @@ const QUEST_LEVELS: QuestLevel[] = [
   "god",
 ];
 
-export function Legend() {
+interface LegendProps {
+  isMobile?: boolean;
+  sidePanelOpen?: boolean;
+}
+
+export function Legend({ isMobile = false, sidePanelOpen = true }: LegendProps) {
   const [isOpen, setIsOpen] = useState(false);
+
+  // Legend lives in the map area. On desktop with the side panel open, scoot
+  // left so it doesn't sit under the reopen tab. Otherwise hug the right edge.
+  const rightOffset = !sidePanelOpen ? 44 : isMobile ? 16 : 16;
 
   return (
     <div
       style={{
-        position: "fixed",
+        position: "absolute",
         bottom: 16,
-        right: 340,
+        right: rightOffset,
         zIndex: 100,
       }}
     >

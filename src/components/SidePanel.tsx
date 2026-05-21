@@ -18,6 +18,9 @@ interface SidePanelProps {
   onDeleteQuest: (questId: string) => void;
   onAddQuest: () => void;
   onRunEncounter?: (encounter: GeneratedEncounter) => void;
+  isMobile?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 export function SidePanel({
@@ -32,7 +35,11 @@ export function SidePanel({
   onDeleteQuest,
   onAddQuest,
   onRunEncounter,
+  isMobile = false,
+  isOpen = true,
+  onClose,
 }: SidePanelProps) {
+  if (!isOpen) return null;
   const [encounter, setEncounter] = useState<GeneratedEncounter | null>(null);
   const [generating, setGenerating] = useState(false);
   const terrain = hexData?.terrain ?? "unknown";
@@ -49,16 +56,50 @@ export function SidePanel({
   return (
     <div
       style={{
-        width: 320,
+        // Mobile: full-screen drawer overlay anchored right. Desktop: in-flow 320px column.
+        position: isMobile ? "absolute" : "relative",
+        top: isMobile ? 0 : undefined,
+        right: isMobile ? 0 : undefined,
+        bottom: isMobile ? 0 : undefined,
+        zIndex: isMobile ? 150 : undefined,
+        width: isMobile ? "min(360px, 100%)" : 320,
         height: "100%",
         background: "#12121f",
         borderLeft: "1px solid #2e2e4a",
         padding: 16,
+        paddingTop: 48,
         overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
         color: "#e8e8f0",
         fontFamily: "'Segoe UI', sans-serif",
+        boxShadow: isMobile ? "-4px 0 16px rgba(0,0,0,0.4)" : undefined,
       }}
     >
+      {onClose && (
+        <button
+          onClick={onClose}
+          title="Collapse panel"
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            width: 32,
+            height: 32,
+            borderRadius: 6,
+            background: "transparent",
+            border: "1px solid #2e2e4a",
+            color: "#9ca3af",
+            fontSize: 16,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1,
+          }}
+        >
+          &#10006;
+        </button>
+      )}
       {!selectedHex ? (
         <div
           style={{
