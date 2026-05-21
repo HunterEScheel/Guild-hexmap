@@ -215,6 +215,29 @@ export function HexGrid({
 
   const pinSize = HEX_SIZE * 0.35;
 
+  // Group quests by start hex so multiple quests sharing a starting hex
+  // fan out into visible side-by-side pins instead of stacking invisibly.
+  const activeQuests = quests.filter((q) => q.status !== "completed");
+  const questsByStart = new Map<string, Quest[]>();
+  for (const q of activeQuests) {
+    const k = `${q.hexCol}_${q.hexRow}`;
+    const arr = questsByStart.get(k);
+    if (arr) arr.push(q);
+    else questsByStart.set(k, [q]);
+  }
+  const pinSpacing = HEX_SIZE * 0.45;
+  const questPositions = new Map<string, { x: number; y: number }>();
+  for (const group of questsByStart.values()) {
+    const center = hexToPixel(group[0].hexCol, group[0].hexRow);
+    const totalWidth = (group.length - 1) * pinSpacing;
+    group.forEach((quest, i) => {
+      questPositions.set(quest.id, {
+        x: center.x + (-totalWidth / 2 + i * pinSpacing),
+        y: center.y,
+      });
+    });
+  }
+
   return (
     <div ref={containerRef} style={{ width: "100%", height: "100%" }}>
       <svg
@@ -236,37 +259,36 @@ export function HexGrid({
         <g>{eraseHighlights}</g>
         <g>{selectionOverlays}</g>
         <g>
-          {quests
-            .filter((q) => q.status !== "completed")
-            .map((quest) => {
-              const start = hexToPixel(quest.hexCol, quest.hexRow);
-              const color = QUEST_LEVEL_COLORS[quest.level];
-              const hasEnd =
-                quest.endHexCol != null && quest.endHexRow != null;
-              const end = hasEnd
-                ? hexToPixel(quest.endHexCol!, quest.endHexRow!)
-                : null;
+          {activeQuests.map((quest) => {
+            const start = questPositions.get(quest.id);
+            if (!start) return null;
+            const color = QUEST_LEVEL_COLORS[quest.level];
+            const hasEnd =
+              quest.endHexCol != null && quest.endHexRow != null;
+            const end = hasEnd
+              ? hexToPixel(quest.endHexCol!, quest.endHexRow!)
+              : null;
 
-              return (
-                <g key={`route-${quest.id}`} pointerEvents="none">
-                  {/* Dotted line between start and end */}
-                  {end && (
-                    <line
-                      x1={start.x}
-                      y1={start.y}
-                      x2={end.x}
-                      y2={end.y}
-                      stroke={color}
-                      strokeWidth={2}
-                      strokeDasharray="6 4"
-                      opacity={0.7}
-                    />
-                  )}
-                  {/* Start pin */}
-                  <QuestPin x={start.x} y={start.y} color={color} size={pinSize} />
-                </g>
-              );
-            })}
+            return (
+              <g key={`route-${quest.id}`} pointerEvents="none">
+                {/* Dotted line between start pin and end hex */}
+                {end && (
+                  <line
+                    x1={start.x}
+                    y1={start.y}
+                    x2={end.x}
+                    y2={end.y}
+                    stroke={color}
+                    strokeWidth={2}
+                    strokeDasharray="6 4"
+                    opacity={0.7}
+                  />
+                )}
+                {/* Start pin */}
+                <QuestPin x={start.x} y={start.y} color={color} size={pinSize} />
+              </g>
+            );
+          })}
         </g>
       </svg>
     </div>
