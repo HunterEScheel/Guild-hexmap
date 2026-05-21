@@ -119,7 +119,7 @@ export function ActiveQuests({
             onEdit={onEditQuest}
             onDelete={onDeleteQuest}
             accentColor="#4ade80"
-            renderFooter={(quest) => (
+            renderExpandedExtras={(quest) => (
               <QuestFindings
                 quest={quest}
                 findings={findings.filter((f) => f.questId === quest.id)}
@@ -147,7 +147,7 @@ function QuestSection({
   onEdit,
   onDelete,
   accentColor,
-  renderFooter,
+  renderExpandedExtras,
 }: {
   title: string;
   quests: Quest[];
@@ -158,7 +158,7 @@ function QuestSection({
   onEdit: (quest: Quest) => void;
   onDelete: (questId: string) => void;
   accentColor: string;
-  renderFooter?: (quest: Quest) => React.ReactNode;
+  renderExpandedExtras?: (quest: Quest) => React.ReactNode;
 }) {
   if (quests.length === 0) return null;
 
@@ -217,8 +217,10 @@ function QuestSection({
               onLeave={onLeave}
               onEdit={onEdit}
               onDelete={onDelete}
+              expandedExtras={
+                renderExpandedExtras ? renderExpandedExtras(quest) : undefined
+              }
             />
-            {renderFooter && renderFooter(quest)}
           </div>
         ))}
       </div>

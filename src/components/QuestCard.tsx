@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { QUEST_LEVEL_COLORS, QUEST_LEVEL_LABELS } from "../utils/colors";
 import type { Quest } from "../types";
 
@@ -9,6 +10,14 @@ interface QuestCardProps {
   onLeave: (questId: string) => void;
   onEdit: (quest: Quest) => void;
   onDelete: (questId: string) => void;
+  /**
+   * Optional content rendered inside the expanded section, below the party
+   * list. ActiveQuests uses this to inject the QuestFindings panel for
+   * completed quests.
+   */
+  expandedExtras?: React.ReactNode;
+  /** Force-open the card on first render (e.g. for completed quests). */
+  defaultExpanded?: boolean;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -25,11 +34,13 @@ export function QuestCard({
   onLeave,
   onEdit,
   onDelete,
+  expandedExtras,
+  defaultExpanded = false,
 }: QuestCardProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const levelColor = QUEST_LEVEL_COLORS[quest.level];
   const hasJoined = playerName ? quest.players.includes(playerName) : false;
-  const canJoin =
-    !hasJoined && quest.status !== "completed";
+  const canJoin = !hasJoined && quest.status !== "completed";
 
   return (
     <div
@@ -102,28 +113,59 @@ export function QuestCard({
         </span>
       </div>
 
-      {quest.scheduledDate && (
-        <div style={{ marginBottom: 6 }}>
-          <span style={{ fontSize: 11, color: "#6b7280" }}>Scheduled: </span>
-          <span style={{ fontSize: 12, color: "#60a5fa" }}>
-            {new Date(quest.scheduledDate + "T00:00:00").toLocaleDateString(
-              undefined,
-              { weekday: "short", month: "short", day: "numeric" }
-            )}
-          </span>
+      {/* Expanded details: schedule, party, extras (findings) */}
+      {expanded && (
+        <div
+          style={{
+            borderTop: "1px solid #2e2e4a",
+            paddingTop: 8,
+            marginTop: 4,
+            marginBottom: 8,
+          }}
+        >
+          {quest.scheduledDate && (
+            <div style={{ marginBottom: 6 }}>
+              <span style={{ fontSize: 11, color: "#6b7280" }}>Scheduled: </span>
+              <span style={{ fontSize: 12, color: "#60a5fa" }}>
+                {new Date(quest.scheduledDate + "T00:00:00").toLocaleDateString(
+                  undefined,
+                  { weekday: "short", month: "short", day: "numeric" }
+                )}
+              </span>
+            </div>
+          )}
+
+          <div style={{ marginBottom: 6 }}>
+            <span style={{ fontSize: 11, color: "#6b7280" }}>Party: </span>
+            <span style={{ fontSize: 12, color: "#d1d5db" }}>
+              {quest.players.length > 0 ? quest.players.join(", ") : "—"}
+            </span>
+          </div>
+
+          {expandedExtras}
         </div>
       )}
 
-      {quest.players.length > 0 && (
-        <div style={{ marginBottom: 8 }}>
-          <span style={{ fontSize: 11, color: "#6b7280" }}>Party: </span>
-          <span style={{ fontSize: 12, color: "#d1d5db" }}>
-            {quest.players.join(", ")}
-          </span>
-        </div>
-      )}
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          style={{
+            background: "transparent",
+            color: "#9ca3af",
+            border: "1px solid #2e2e4a",
+            borderRadius: 4,
+            padding: "4px 10px",
+            fontSize: 12,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <span style={{ fontSize: 10 }}>{expanded ? "▴" : "▾"}</span>
+          {expanded ? "Hide details" : "Details"}
+        </button>
 
-      <div style={{ display: "flex", gap: 6 }}>
         {canJoin && (
           <button
             onClick={() => onJoin(quest.id)}
