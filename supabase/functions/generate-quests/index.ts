@@ -4,19 +4,17 @@
 // quests, all reports) and asks OpenAI to surface quest suggestions that
 // arise from the report.
 //
-// Deploy:
-//   supabase functions deploy generate-quests
+// Deploy via dashboard: paste this whole file as the function body,
+// name the function "generate-quests", click Deploy.
 //
-// Required secret (set once):
-//   supabase secrets set OPENAI_API_KEY=sk-...
+// Required secret:
+//   OPENAI_API_KEY = sk-...
 //
-// Optional:
-//   supabase secrets set OPENAI_MODEL=gpt-4o-mini
+// Optional secret:
+//   OPENAI_MODEL = gpt-4o-mini (default if unset)
 
 // deno-lint-ignore-file no-explicit-any
-// @ts-nocheck — this file runs in the Deno edge runtime, not the browser TS build.
-
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+// @ts-nocheck — runs in Deno, not the browser TS build.
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -25,37 +23,9 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-type Hex = {
-  col: number;
-  row: number;
-  terrain: string;
-  challengeTier: number | null;
-};
-
-type Quest = {
-  title: string;
-  description: string;
-  level: string;
-  status: string;
-  hexCol: number;
-  hexRow: number;
-  endHexCol: number | null;
-  endHexRow: number | null;
-};
-
-type Report = {
-  id: string;
-  author: string;
-  title: string;
-  content: string;
-  createdAt: string;
-};
-
-type RequestBody = {
-  reportId: string;
-  hexes: Hex[];
-  quests: Quest[];
-  reports: Report[];
+const JSON_CORS = {
+  ...CORS_HEADERS,
+  "Content-Type": "application/json",
 };
 
 const QUEST_LEVELS = [
@@ -66,7 +36,7 @@ const QUEST_LEVELS = [
   "dragon",
   "terrasque",
   "god",
-] as const;
+];
 
 const SYSTEM_PROMPT = `You are the world-spinner for a Dungeons & Dragons hexcrawl campaign.
 The party of adventurers operates from a fortified town and explores a hex map. They submit field reports after each outing.
@@ -95,7 +65,7 @@ Respond with ONLY a JSON object of the form:
     {
       "title": "...",
       "description": "...",
-      "reward": "...",            // can be empty string
+      "reward": "...",
       "level": "explore" | "recurring" | "wolf" | "demon" | "dragon" | "terrasque" | "god",
       "hexCol": <int>,
       "hexRow": <int>,
@@ -106,7 +76,7 @@ Respond with ONLY a JSON object of the form:
   ]
 }`;
 
-function buildUserPrompt(body: RequestBody): string {
+function buildUserPrompt(body) {
   const focal = body.reports.find((r) => r.id === body.reportId);
   if (!focal) {
     return `Focal report id ${body.reportId} not found in reports list.`;
@@ -114,14 +84,14 @@ function buildUserPrompt(body: RequestBody): string {
 
   const otherReports = body.reports.filter((r) => r.id !== body.reportId);
 
-  const hexLines = body.hexes
+  const hexLines = (body.hexes || [])
     .map((h) => {
       const tier = h.challengeTier != null ? ` T${h.challengeTier}` : "";
       return `  (${h.col}, ${h.row}) ${h.terrain}${tier}`;
     })
     .join("\n");
 
-  const questLines = body.quests
+  const questLines = (body.quests || [])
     .filter((q) => q.status !== "completed")
     .map((q) => {
       const route =
@@ -136,7 +106,7 @@ function buildUserPrompt(body: RequestBody): string {
     .slice(0, 5)
     .map(
       (r) =>
-        `  - ${r.author} (${r.createdAt}): ${r.title ? r.title + " — " : ""}${r.content.slice(0, 200)}`
+        `  - ${r.author} (${r.createdAt}): ${r.title ? r.title + " — " : ""}${(r.content || "").slice(0, 200)}`
     )
     .join("\n");
 
@@ -162,13 +132,13 @@ ${recentReports || "  (none)"}
 Based on the FOCAL REPORT (with the world state as context), propose new quests.`;
 }
 
-function isValidLevel(v: unknown): v is (typeof QUEST_LEVELS)[number] {
-  return typeof v === "string" && (QUEST_LEVELS as readonly string[]).includes(v);
+function isValidLevel(v) {
+  return typeof v === "string" && QUEST_LEVELS.indexOf(v) !== -1;
 }
 
-function sanitizeSuggestions(raw: any, fallbackHex: Hex | null): any[] {
+function sanitizeSuggestions(raw, fallbackHex) {
   if (!raw || !Array.isArray(raw.suggestions)) return [];
-  const out: any[] = [];
+  const out = [];
   for (const s of raw.suggestions) {
     if (!s || typeof s !== "object") continue;
     const title = String(s.title ?? "").trim();
@@ -189,6 +159,7 @@ function sanitizeSuggestions(raw: any, fallbackHex: Hex | null): any[] {
       s.endHexRow != null && Number.isFinite(s.endHexRow)
         ? Math.trunc(s.endHexRow)
         : null;
+    const hasRoute = endHexCol != null && endHexRow != null;
     out.push({
       title,
       description,
@@ -196,19 +167,24 @@ function sanitizeSuggestions(raw: any, fallbackHex: Hex | null): any[] {
       level,
       hexCol,
       hexRow,
-      endHexCol:
-        endHexCol != null && endHexRow != null ? endHexCol : null,
-      endHexRow:
-        endHexCol != null && endHexRow != null ? endHexRow : null,
+      endHexCol: hasRoute ? endHexCol : null,
+      endHexRow: hasRoute ? endHexRow : null,
       rationale: String(s.rationale ?? "").trim(),
     });
   }
   return out.slice(0, 4);
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS });
+  }
+
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { status: 405, headers: JSON_CORS }
+    );
   }
 
   try {
@@ -216,21 +192,30 @@ serve(async (req) => {
     if (!apiKey) {
       return new Response(
         JSON.stringify({ error: "OPENAI_API_KEY secret not set" }),
-        { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+        { status: 500, headers: JSON_CORS }
       );
     }
     const model = Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini";
 
-    const body = (await req.json()) as RequestBody;
-    if (!body?.reportId || !Array.isArray(body.reports)) {
+    let body;
+    try {
+      body = await req.json();
+    } catch {
       return new Response(
-        JSON.stringify({ error: "Invalid body — expected reportId and reports[]" }),
-        { status: 400, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Invalid JSON body" }),
+        { status: 400, headers: JSON_CORS }
+      );
+    }
+
+    if (!body || !body.reportId || !Array.isArray(body.reports)) {
+      return new Response(
+        JSON.stringify({ error: "Body must include reportId and reports[]" }),
+        { status: 400, headers: JSON_CORS }
       );
     }
 
     const userPrompt = buildUserPrompt(body);
-    const fallbackHex = body.hexes[0] ?? null;
+    const fallbackHex = (body.hexes && body.hexes[0]) || null;
 
     const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -252,8 +237,8 @@ serve(async (req) => {
     if (!aiRes.ok) {
       const errText = await aiRes.text();
       return new Response(
-        JSON.stringify({ error: `OpenAI error ${aiRes.status}: ${errText}` }),
-        { status: 502, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+        JSON.stringify({ error: `OpenAI ${aiRes.status}: ${errText}` }),
+        { status: 502, headers: JSON_CORS }
       );
     }
 
@@ -262,29 +247,31 @@ serve(async (req) => {
     if (typeof content !== "string") {
       return new Response(
         JSON.stringify({ error: "OpenAI returned no content" }),
-        { status: 502, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+        { status: 502, headers: JSON_CORS }
       );
     }
 
-    let parsed: any;
+    let parsed;
     try {
       parsed = JSON.parse(content);
     } catch {
       return new Response(
         JSON.stringify({ error: "OpenAI returned malformed JSON", raw: content }),
-        { status: 502, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+        { status: 502, headers: JSON_CORS }
       );
     }
 
     const suggestions = sanitizeSuggestions(parsed, fallbackHex);
 
     return new Response(JSON.stringify({ suggestions }), {
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      headers: JSON_CORS,
     });
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : String(err) }),
-      { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+      JSON.stringify({
+        error: err instanceof Error ? err.message : String(err),
+      }),
+      { status: 500, headers: JSON_CORS }
     );
   }
 });
