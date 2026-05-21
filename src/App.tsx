@@ -383,32 +383,6 @@ function App() {
             />
             <Legend isMobile={isMobile} sidePanelOpen={sidePanelOpen} />
 
-            {!isAdmin && (
-              <button
-                onClick={promptPin}
-                title="Admin Login"
-                style={{
-                  position: "absolute",
-                  bottom: 16,
-                  left: 16,
-                  width: 44,
-                  height: 44,
-                  borderRadius: 8,
-                  background: "#1e1e36",
-                  border: "1px solid #2e2e4a",
-                  color: "#6b7280",
-                  fontSize: 20,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  zIndex: 100,
-                }}
-              >
-                &#128274;
-              </button>
-            )}
-
             {/* Reopen tab when the side panel is collapsed */}
             {!sidePanelOpen && (
               <button
@@ -501,6 +475,33 @@ function App() {
         <div style={{ flex: 1, overflow: "auto" }}>
           <Characters />
         </div>
+      )}
+
+      {/* Global admin lock — visible on every page until logged in */}
+      {!isAdmin && (
+        <button
+          onClick={promptPin}
+          title="Admin Login"
+          style={{
+            position: "fixed",
+            bottom: 16,
+            left: 16,
+            width: 44,
+            height: 44,
+            borderRadius: 8,
+            background: "#1e1e36",
+            border: "1px solid #2e2e4a",
+            color: "#6b7280",
+            fontSize: 20,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
+        >
+          &#128274;
+        </button>
       )}
 
       {/* Modals */}
