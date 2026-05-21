@@ -6,7 +6,33 @@ import {
   createQuest,
 } from "../hooks/useFirebase";
 import { QUEST_LEVEL_LABELS, QUEST_LEVEL_COLORS } from "../utils/colors";
-import type { HexData, Quest, QuestSuggestion, Report } from "../types";
+import type {
+  HexData,
+  Quest,
+  QuestSuggestion,
+  Report,
+  ReportFinding,
+} from "../types";
+
+interface DraftFinding {
+  hexCol: string;
+  hexRow: string;
+  description: string;
+}
+
+const emptyFinding = (): DraftFinding => ({
+  hexCol: "",
+  hexRow: "",
+  description: "",
+});
+
+function draftToFinding(d: DraftFinding): ReportFinding | null {
+  const hexCol = Number(d.hexCol);
+  const hexRow = Number(d.hexRow);
+  if (!Number.isFinite(hexCol) || !Number.isFinite(hexRow)) return null;
+  if (!d.description.trim()) return null;
+  return { hexCol, hexRow, description: d.description.trim() };
+}
 
 interface ReportsProps {
   reports: Report[];
@@ -27,6 +53,7 @@ export function Reports({
 }: ReportsProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [findings, setFindings] = useState<DraftFinding[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,14 +70,30 @@ export function Reports({
     setSubmitting(true);
     setError(null);
     try {
-      await createReport(playerName, title, content);
+      const cleanFindings = findings
+        .map(draftToFinding)
+        .filter((f): f is ReportFinding => f !== null);
+      await createReport(playerName, title, content, cleanFindings);
       setTitle("");
       setContent("");
+      setFindings([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function updateFinding(idx: number, patch: Partial<DraftFinding>) {
+    setFindings((prev) =>
+      prev.map((f, i) => (i === idx ? { ...f, ...patch } : f))
+    );
+  }
+  function removeFinding(idx: number) {
+    setFindings((prev) => prev.filter((_, i) => i !== idx));
+  }
+  function addFinding() {
+    setFindings((prev) => [...prev, emptyFinding()]);
   }
 
   async function handleGenerate(reportId: string) {
@@ -155,6 +198,100 @@ export function Reports({
               rows={5}
               style={{ ...inputStyle, fontFamily: "inherit", resize: "vertical" }}
             />
+
+            {/* Findings */}
+            <div style={{ marginTop: 14 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 6,
+                }}
+              >
+                <span style={{ fontSize: 12, color: "#9ca3af" }}>
+                  Findings (locations where something happened)
+                </span>
+                <button
+                  type="button"
+                  onClick={addFinding}
+                  style={{
+                    background: "#1e1e36",
+                    color: "#a78bfa",
+                    border: "1px solid #2e2e4a",
+                    borderRadius: 4,
+                    padding: "3px 10px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  + Add finding
+                </button>
+              </div>
+              {findings.length === 0 && (
+                <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0" }}>
+                  Optional. Add one per location — the admin's AI uses these as
+                  anchor points for new quests.
+                </p>
+              )}
+              {findings.map((f, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    gap: 6,
+                    marginTop: 6,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <input
+                    type="number"
+                    value={f.hexCol}
+                    onChange={(e) =>
+                      updateFinding(i, { hexCol: e.target.value })
+                    }
+                    placeholder="col"
+                    style={{ ...inputStyle, width: 70 }}
+                  />
+                  <input
+                    type="number"
+                    value={f.hexRow}
+                    onChange={(e) =>
+                      updateFinding(i, { hexRow: e.target.value })
+                    }
+                    placeholder="row"
+                    style={{ ...inputStyle, width: 70 }}
+                  />
+                  <input
+                    value={f.description}
+                    onChange={(e) =>
+                      updateFinding(i, { description: e.target.value })
+                    }
+                    placeholder="What did you find here?"
+                    style={{ ...inputStyle, flex: 1, minWidth: 160 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeFinding(i)}
+                    title="Remove"
+                    style={{
+                      background: "transparent",
+                      color: "#6b7280",
+                      border: "1px solid #2e2e4a",
+                      borderRadius: 4,
+                      padding: "4px 8px",
+                      fontSize: 12,
+                      cursor: "pointer",
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+
             {error && (
               <p style={{ color: "#ef4444", fontSize: 12, marginTop: 8 }}>{error}</p>
             )}
@@ -312,6 +449,58 @@ export function Reports({
                 >
                   {report.content}
                 </p>
+                {report.findings.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      paddingTop: 8,
+                      borderTop: "1px solid #2e2e4a",
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: "#9ca3af",
+                        fontSize: 11,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Findings
+                    </span>
+                    <ul
+                      style={{
+                        listStyle: "none",
+                        padding: 0,
+                        margin: "6px 0 0",
+                      }}
+                    >
+                      {report.findings.map((f, i) => (
+                        <li
+                          key={i}
+                          style={{
+                            color: "#d1d5db",
+                            fontSize: 13,
+                            margin: "3px 0",
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          <span
+                            style={{
+                              color: "#a78bfa",
+                              fontFamily:
+                                "ui-monospace, SFMono-Regular, Menlo, monospace",
+                              fontSize: 12,
+                            }}
+                          >
+                            ({f.hexCol}, {f.hexRow})
+                          </span>{" "}
+                          {f.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             );
           })}

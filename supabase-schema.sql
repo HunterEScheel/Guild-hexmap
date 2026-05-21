@@ -13,6 +13,9 @@ create table where not exists hexes (
 -- Migration: Add challenge_tier to hexes
 -- alter table hexes add column challenge_tier integer;
 
+-- Migration: Add landmark to hexes
+-- alter table hexes add column if not exists landmark text;
+
 -- Bestiary table (curated terrain assignments for SRD monsters)
 create table if not exists bestiary (
   index text primary key,
@@ -109,8 +112,12 @@ create table if not exists reports (
   author text not null,
   title text not null default '',
   content text not null,
+  findings jsonb not null default '[]'::jsonb,
   created_at timestamptz default now()
 );
+
+-- Migration: add findings to existing reports table
+-- alter table reports add column if not exists findings jsonb not null default '[]'::jsonb;
 
 alter table reports enable row level security;
 create policy "Allow all access to reports" on reports

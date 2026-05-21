@@ -23,11 +23,14 @@ export type QuestStatus = "available" | "in_progress" | "completed";
 
 export type ChallengeTier = 0 | 1 | 2 | 3 | 4;
 
+export type Landmark = "dungeon" | "village" | "ruins" | "tower";
+
 export interface HexData {
   col: number;
   row: number;
   terrain: TerrainType;
   challengeTier: ChallengeTier | null;
+  landmark: Landmark | null;
 }
 
 export interface InitiativeEntry {
@@ -56,11 +59,18 @@ export interface Quest {
   scheduledDate: string | null;
 }
 
+export interface ReportFinding {
+  hexCol: number;
+  hexRow: number;
+  description: string;
+}
+
 export interface Report {
   id: string;
   author: string;
   title: string;
   content: string;
+  findings: ReportFinding[];
   createdAt: string;
 }
 

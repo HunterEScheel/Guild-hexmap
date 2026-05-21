@@ -45,8 +45,11 @@ Your job: given the latest field report and the current world state, propose 0-4
 
 Rules:
 - Only propose quests grounded in the focal report's content. Do not invent unrelated threads.
-- Prefer quests anchored at hexes that already exist on the map (look at the filled hexes list).
-- A quest may have a single hex (just hexCol/hexRow) or a "route" with end coordinates.
+- The focal report may include "findings" — explicit (col, row) hex coordinates the player flagged as significant. These are the strongest signal for where a quest should anchor.
+- A quest's hexCol/hexRow should be one of the report's findings whenever possible. Use the most relevant finding as the START point.
+- If the quest naturally has a destination different from where it begins, set endHexCol/endHexRow to ANOTHER finding from the same report (preferred) or another filled hex.
+- If no destination makes sense, leave endHexCol and endHexRow null — single-hex quests are valid.
+- Fall back to a filled hex on the map only when the report has no usable findings.
 - "level" must be one of: ${QUEST_LEVELS.join(", ")}.
   - explore: simple investigation/scouting
   - recurring: ongoing/repeatable jobs
@@ -71,7 +74,7 @@ Respond with ONLY a JSON object of the form:
       "hexRow": <int>,
       "endHexCol": <int> | null,
       "endHexRow": <int> | null,
-      "rationale": "Why this quest follows from the report (one sentence)."
+      "rationale": "Why this quest follows from the report (one sentence). Cite the finding it anchors to if applicable."
     }
   ]
 }`;
@@ -110,12 +113,24 @@ function buildUserPrompt(body) {
     )
     .join("\n");
 
+  const focalFindings = Array.isArray(focal.findings)
+    ? focal.findings
+        .map(
+          (f, i) =>
+            `  [${i + 1}] (${f.hexCol}, ${f.hexRow}) — ${f.description || "(no description)"}`
+        )
+        .join("\n")
+    : "";
+
   return `FOCAL REPORT
 Author: ${focal.author}
 Title: ${focal.title || "(untitled)"}
 Submitted: ${focal.createdAt}
 
 ${focal.content}
+
+Findings reported at specific hexes:
+${focalFindings || "  (none)"}
 
 ------------------
 WORLD STATE

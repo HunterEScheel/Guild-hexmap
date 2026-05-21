@@ -48,6 +48,8 @@ const VALID_TERRAINS = [
   "unknown",
 ];
 
+const VALID_LANDMARKS = ["dungeon", "village", "ruins", "tower"];
+
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), { status, headers: JSON_CORS });
 }
@@ -139,6 +141,51 @@ Deno.serve(async (req) => {
         }
         const { error } = await supa.from("hexes").upsert(
           { col, row, challenge_tier: tier },
+          { onConflict: "col,row" }
+        );
+        if (error) return serverError(error.message);
+        return ok();
+      }
+
+      case "set_hex_landmark": {
+        const col = Number(payload.col);
+        const row = Number(payload.row);
+        const landmarkRaw = payload.landmark;
+        const landmark =
+          landmarkRaw == null || landmarkRaw === ""
+            ? null
+            : String(landmarkRaw);
+        if (!Number.isFinite(col) || !Number.isFinite(row)) {
+          return badRequest("col/row must be numbers");
+        }
+        if (landmark != null && !VALID_LANDMARKS.includes(landmark)) {
+          return badRequest("invalid landmark");
+        }
+        if (landmark == null) {
+          // Clearing the landmark — if the row would be empty afterwards
+          // (no terrain, no tier), delete it entirely so the grid shrinks.
+          const { data: existing } = await supa
+            .from("hexes")
+            .select("terrain, challenge_tier")
+            .eq("col", col)
+            .eq("row", row)
+            .maybeSingle();
+          const willBeEmpty =
+            !existing ||
+            ((existing.terrain == null || existing.terrain === "unknown") &&
+              existing.challenge_tier == null);
+          if (willBeEmpty) {
+            const { error } = await supa
+              .from("hexes")
+              .delete()
+              .eq("col", col)
+              .eq("row", row);
+            if (error) return serverError(error.message);
+            return ok();
+          }
+        }
+        const { error } = await supa.from("hexes").upsert(
+          { col, row, landmark },
           { onConflict: "col,row" }
         );
         if (error) return serverError(error.message);

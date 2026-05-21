@@ -37,7 +37,9 @@ export function useGridSize(hexes: Map<string, HexData>): GridSize {
     };
 
     for (const hex of hexes.values()) {
-      if (hex.terrain === "unknown") continue;
+      // A hex is "filled for rendering" if it has terrain or a landmark.
+      const isFilled = hex.terrain !== "unknown" || hex.landmark != null;
+      if (!isFilled) continue;
       addCell(hex.col, hex.row);
       for (const n of hexNeighbors(hex.col, hex.row)) {
         addCell(n.col, n.row);

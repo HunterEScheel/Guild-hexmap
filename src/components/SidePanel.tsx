@@ -44,7 +44,15 @@ export function SidePanel({
   const [generating, setGenerating] = useState(false);
   const terrain = hexData?.terrain ?? "unknown";
   const challengeTier = hexData?.challengeTier ?? null;
+  const landmark = hexData?.landmark ?? null;
   const canHaveEncounters = terrain !== "allied_city" && terrain !== "unknown";
+
+  const LANDMARK_LABELS: Record<string, string> = {
+    village: "Village",
+    dungeon: "Dungeon",
+    ruins: "Ruins",
+    tower: "Tower",
+  };
   const hexQuests = selectedHex
     ? quests.filter(
         (q) => q.hexCol === selectedHex.col && q.hexRow === selectedHex.row
@@ -135,6 +143,11 @@ export function SidePanel({
               />
               <span style={{ fontSize: 14 }}>{TERRAIN_LABELS[terrain]}</span>
             </div>
+            {landmark && (
+              <div style={{ marginTop: 6, fontSize: 13, color: "#a78bfa" }}>
+                Landmark: {LANDMARK_LABELS[landmark] ?? landmark}
+              </div>
+            )}
           </div>
 
           {/* Challenge Tier */}

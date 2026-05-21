@@ -7,7 +7,9 @@ import type {
   TerrainType,
   InitiativeEntry,
   Report,
+  ReportFinding,
   QuestSuggestion,
+  Landmark,
 } from "../types/index";
 
 export function useHexData(): Map<string, HexData> {
@@ -27,6 +29,7 @@ export function useHexData(): Map<string, HexData> {
               row: row.row,
               terrain: row.terrain as TerrainType,
               challengeTier: (row.challenge_tier as ChallengeTier) ?? null,
+              landmark: (row.landmark as Landmark) ?? null,
             });
           }
           setHexes(map);
@@ -51,6 +54,7 @@ export function useHexData(): Map<string, HexData> {
                 row: number;
                 terrain: string;
                 challenge_tier: number | null;
+                landmark: string | null;
               };
               next.set(`${row.col}_${row.row}`, {
                 col: row.col,
@@ -175,6 +179,15 @@ export async function setHexChallengeTier(
   tier: ChallengeTier | null
 ): Promise<void> {
   await callAdminAction(pin, "set_hex_challenge_tier", { col, row, tier });
+}
+
+export async function setHexLandmark(
+  pin: string,
+  col: number,
+  row: number,
+  landmark: Landmark | null
+): Promise<void> {
+  await callAdminAction(pin, "set_hex_landmark", { col, row, landmark });
 }
 
 export async function createQuest(quest: Omit<Quest, "id">): Promise<void> {
@@ -358,11 +371,30 @@ export async function clearInitiativeTracker(): Promise<void> {
 // --- Reports ---
 
 function mapReport(row: Record<string, unknown>): Report {
+  const rawFindings = row.findings;
+  let findings: ReportFinding[] = [];
+  if (Array.isArray(rawFindings)) {
+    findings = rawFindings
+      .map((f) => {
+        if (!f || typeof f !== "object") return null;
+        const ff = f as Record<string, unknown>;
+        const hexCol = Number(ff.hexCol ?? ff.hex_col);
+        const hexRow = Number(ff.hexRow ?? ff.hex_row);
+        if (!Number.isFinite(hexCol) || !Number.isFinite(hexRow)) return null;
+        return {
+          hexCol,
+          hexRow,
+          description: String(ff.description ?? "").trim(),
+        };
+      })
+      .filter((f): f is ReportFinding => f !== null);
+  }
   return {
     id: row.id as string,
     author: row.author as string,
     title: (row.title as string) ?? "",
     content: row.content as string,
+    findings,
     createdAt: row.created_at as string,
   };
 }
@@ -415,12 +447,18 @@ export function useReports(): Report[] {
 export async function createReport(
   author: string,
   title: string,
-  content: string
+  content: string,
+  findings: ReportFinding[] = []
 ): Promise<void> {
   await supabase.from("reports").insert({
     author,
     title: title.trim(),
     content: content.trim(),
+    findings: findings.map((f) => ({
+      hexCol: f.hexCol,
+      hexRow: f.hexRow,
+      description: f.description.trim(),
+    })),
   });
 }
 
@@ -467,6 +505,7 @@ export async function generateQuestsFromReport(
         author: r.author,
         title: r.title,
         content: r.content,
+        findings: r.findings,
         createdAt: r.createdAt,
       })),
     },

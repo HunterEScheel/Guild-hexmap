@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { HexTile } from "./HexTile";
+import { LandmarkIcon } from "./LandmarkIcon";
 import { useGridSize } from "../hooks/useGridSize";
 import { hexToPixel, hexPointsString, HEX_SIZE } from "../utils/hexMath";
 import { QUEST_LEVEL_COLORS } from "../utils/colors";
@@ -251,6 +252,7 @@ export function HexGrid({
   }
 
   const fills: React.ReactNode[] = [];
+  const landmarks: React.ReactNode[] = [];
   const selectionOverlays: React.ReactNode[] = [];
   const eraseHighlights: React.ReactNode[] = [];
 
@@ -269,6 +271,17 @@ export function HexGrid({
         onClick={onHexSelect}
       />
     );
+
+    if (hexData?.landmark) {
+      landmarks.push(
+        <LandmarkIcon
+          key={`lm-${key}`}
+          col={col}
+          row={row}
+          landmark={hexData.landmark}
+        />
+      );
+    }
 
     if (isSelected) {
       selectionOverlays.push(
@@ -353,6 +366,7 @@ export function HexGrid({
         onClickCapture={handleClickCapture}
       >
         <g>{fills}</g>
+        <g>{landmarks}</g>
         <g>{eraseHighlights}</g>
         <g>{selectionOverlays}</g>
         <g>

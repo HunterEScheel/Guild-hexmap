@@ -22,6 +22,7 @@ import {
   useReports,
   setHexTerrain,
   setHexChallengeTier,
+  setHexLandmark,
   createQuest,
   updateQuest,
   deleteQuest,
@@ -33,7 +34,7 @@ import {
 import { useAdminMode } from "./hooks/useAdminMode";
 import { useIsMobile } from "./hooks/useIsMobile";
 import type { GeneratedEncounter } from "./data/bestiary";
-import type { ChallengeTier, Quest, TerrainType } from "./types";
+import type { ChallengeTier, Landmark, Quest, TerrainType } from "./types";
 import "./index.css";
 
 type TopPage = "guild" | "about";
@@ -70,6 +71,9 @@ function App() {
     null
   );
   const [selectedTier, setSelectedTier] = useState<ChallengeTier | null>(null);
+  const [selectedLandmark, setSelectedLandmark] = useState<
+    Landmark | null | "clear"
+  >(null);
 
   // Player
   const [playerName, setPlayerName] = useState<string | null>(() =>
@@ -108,13 +112,21 @@ function App() {
         });
         return;
       }
+      if (isAdmin && adminPin && selectedLandmark != null) {
+        const value = selectedLandmark === "clear" ? null : selectedLandmark;
+        setHexLandmark(adminPin, col, row, value).catch((err) => {
+          console.error("setHexLandmark failed:", err);
+          alert(`Admin write rejected: ${err.message}`);
+        });
+        return;
+      }
       setSelectedHex((prev) =>
         prev?.col === col && prev?.row === row ? null : { col, row }
       );
       // Selecting a hex auto-opens the (possibly collapsed) info panel.
       setSidePanelOpen(true);
     },
-    [isAdmin, adminPin, selectedTerrain, selectedTier]
+    [isAdmin, adminPin, selectedTerrain, selectedTier, selectedLandmark]
   );
 
   const handleJoinQuest = useCallback(
@@ -328,6 +340,8 @@ function App() {
           onSelectTerrain={setSelectedTerrain}
           selectedTier={selectedTier}
           onSelectTier={setSelectedTier}
+          selectedLandmark={selectedLandmark}
+          onSelectLandmark={setSelectedLandmark}
           onLogout={logout}
         />
       )}

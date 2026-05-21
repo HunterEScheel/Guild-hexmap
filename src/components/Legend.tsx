@@ -5,7 +5,9 @@ import {
   QUEST_LEVEL_COLORS,
   QUEST_LEVEL_LABELS,
 } from "../utils/colors";
-import type { TerrainType, QuestLevel } from "../types";
+import { LandmarkIcon } from "./LandmarkIcon";
+import { hexPointsString, HEX_SIZE } from "../utils/hexMath";
+import type { TerrainType, QuestLevel, Landmark } from "../types";
 
 const TERRAIN_TYPES: TerrainType[] = [
   "forest",
@@ -28,6 +30,13 @@ const QUEST_LEVELS: QuestLevel[] = [
   "dragon",
   "terrasque",
   "god",
+];
+
+const LANDMARKS: { key: Landmark; label: string }[] = [
+  { key: "village", label: "Village" },
+  { key: "dungeon", label: "Dungeon" },
+  { key: "ruins", label: "Ruins" },
+  { key: "tower", label: "Tower" },
 ];
 
 interface LegendProps {
@@ -113,6 +122,38 @@ export function Legend({ isMobile = false, sidePanelOpen = true }: LegendProps) 
                 <span style={{ color: "#d1d5db", fontSize: 12 }}>
                   {TERRAIN_LABELS[t]}
                 </span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <span style={{ color: "#9ca3af", fontSize: 11, display: "block", marginBottom: 4 }}>
+              Landmark
+            </span>
+            {LANDMARKS.map(({ key, label }) => (
+              <div
+                key={key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  marginBottom: 3,
+                }}
+              >
+                <svg
+                  viewBox={`${-HEX_SIZE} ${-HEX_SIZE} ${HEX_SIZE * 2} ${HEX_SIZE * 2}`}
+                  width={16}
+                  height={16}
+                  aria-hidden
+                >
+                  <polygon
+                    points={hexPointsString(0, 0)}
+                    fill="#2e2e4a"
+                    opacity={0.4}
+                  />
+                  <LandmarkIcon col={0} row={0} landmark={key} />
+                </svg>
+                <span style={{ color: "#d1d5db", fontSize: 12 }}>{label}</span>
               </div>
             ))}
           </div>
