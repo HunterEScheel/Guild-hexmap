@@ -64,7 +64,7 @@ function App() {
   } | null>(null);
 
   // Admin
-  const { isAdmin, showPinModal, promptPin, verifyPin, closePinModal, logout } =
+  const { isAdmin, adminPin, showPinModal, promptPin, verifyPin, closePinModal, logout } =
     useAdminMode();
   const [selectedTerrain, setSelectedTerrain] = useState<TerrainType | null>(
     null
@@ -94,12 +94,18 @@ function App() {
 
   const handleHexSelect = useCallback(
     (col: number, row: number) => {
-      if (isAdmin && selectedTerrain) {
-        setHexTerrain(col, row, selectedTerrain);
+      if (isAdmin && adminPin && selectedTerrain) {
+        setHexTerrain(adminPin, col, row, selectedTerrain).catch((err) => {
+          console.error("setHexTerrain failed:", err);
+          alert(`Admin write rejected: ${err.message}`);
+        });
         return;
       }
-      if (isAdmin && selectedTier != null) {
-        setHexChallengeTier(col, row, selectedTier);
+      if (isAdmin && adminPin && selectedTier != null) {
+        setHexChallengeTier(adminPin, col, row, selectedTier).catch((err) => {
+          console.error("setHexChallengeTier failed:", err);
+          alert(`Admin write rejected: ${err.message}`);
+        });
         return;
       }
       setSelectedHex((prev) =>
@@ -108,7 +114,7 @@ function App() {
       // Selecting a hex auto-opens the (possibly collapsed) info panel.
       setSidePanelOpen(true);
     },
-    [isAdmin, selectedTerrain, selectedTier]
+    [isAdmin, adminPin, selectedTerrain, selectedTier]
   );
 
   const handleJoinQuest = useCallback(

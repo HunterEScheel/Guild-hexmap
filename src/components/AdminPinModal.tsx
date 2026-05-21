@@ -1,16 +1,21 @@
 import { useState } from "react";
 
 interface AdminPinModalProps {
-  onVerify: (pin: string) => boolean;
+  onVerify: (pin: string) => Promise<boolean>;
   onClose: () => void;
 }
 
 export function AdminPinModal({ onVerify, onClose }: AdminPinModalProps) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
-  const handleSubmit = () => {
-    if (!onVerify(pin)) {
+  const handleSubmit = async () => {
+    if (verifying) return;
+    setVerifying(true);
+    const ok = await onVerify(pin);
+    setVerifying(false);
+    if (!ok) {
       setError(true);
       setPin("");
     }
@@ -99,18 +104,20 @@ export function AdminPinModal({ onVerify, onClose }: AdminPinModalProps) {
           </button>
           <button
             onClick={handleSubmit}
+            disabled={verifying || !pin}
             style={{
-              background: "#6366f1",
+              background: verifying ? "#3730a3" : "#6366f1",
               color: "#fff",
               border: "none",
               borderRadius: 6,
               padding: "8px 16px",
               fontSize: 13,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: verifying || !pin ? "not-allowed" : "pointer",
+              opacity: verifying || !pin ? 0.7 : 1,
             }}
           >
-            Unlock
+            {verifying ? "Checking..." : "Unlock"}
           </button>
         </div>
       </div>

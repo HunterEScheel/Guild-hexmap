@@ -138,30 +138,43 @@ function mapQuest(row: Record<string, unknown>): Quest {
   };
 }
 
+/**
+ * All hex writes go through the `admin-action` Edge Function. The browser
+ * has no direct write access to the hexes table — RLS enforces that.
+ */
+async function callAdminAction(
+  pin: string,
+  action: string,
+  payload: Record<string, unknown>
+): Promise<void> {
+  const { data, error } = await supabase.functions.invoke("admin-action", {
+    body: { pin, action, payload },
+  });
+  if (error) {
+    throw new Error(`admin-action failed: ${error.message}`);
+  }
+  if (!data || (data as { ok?: boolean }).ok !== true) {
+    const msg = (data as { error?: string })?.error || "unknown error";
+    throw new Error(msg);
+  }
+}
+
 export async function setHexTerrain(
+  pin: string,
   col: number,
   row: number,
   terrain: TerrainType
 ): Promise<void> {
-  if (terrain === "unknown") {
-    await supabase.from("hexes").delete().eq("col", col).eq("row", row);
-    return;
-  }
-  await supabase.from("hexes").upsert(
-    { col, row, terrain },
-    { onConflict: "col,row" }
-  );
+  await callAdminAction(pin, "set_hex_terrain", { col, row, terrain });
 }
 
 export async function setHexChallengeTier(
+  pin: string,
   col: number,
   row: number,
   tier: ChallengeTier | null
 ): Promise<void> {
-  await supabase.from("hexes").upsert(
-    { col, row, challenge_tier: tier },
-    { onConflict: "col,row" }
-  );
+  await callAdminAction(pin, "set_hex_challenge_tier", { col, row, tier });
 }
 
 export async function createQuest(quest: Omit<Quest, "id">): Promise<void> {

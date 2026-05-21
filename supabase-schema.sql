@@ -139,12 +139,16 @@ alter publication supabase_realtime add table quests;
 alter publication supabase_realtime add table initiative_tracker;
 alter publication supabase_realtime add table reports;
 
--- Row Level Security (allow all for now — public game)
+-- Row Level Security
 alter table hexes enable row level security;
 alter table quests enable row level security;
 
-create policy "Allow all access to hexes" on hexes
-  for all using (true) with check (true);
+-- Hexes: anyone can read, only the admin-action Edge Function (via service role)
+-- can write. The old "Allow all access to hexes" policy is dropped if present.
+drop policy if exists "Allow all access to hexes" on hexes;
+create policy "Allow read for everyone" on hexes
+  for select using (true);
+-- (no insert/update/delete policy = anon role cannot write; service_role bypasses RLS)
 
 create policy "Allow all access to quests" on quests
   for all using (true) with check (true);
