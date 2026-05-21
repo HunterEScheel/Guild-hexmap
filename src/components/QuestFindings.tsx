@@ -42,8 +42,7 @@ export function QuestFindings({
   isAdmin,
   onSetPlayerName,
 }: QuestFindingsProps) {
-  const isPartyMember = playerName != null && quest.players.includes(playerName);
-  const canAdd = isPartyMember || isAdmin;
+  const canAdd = playerName != null || isAdmin;
 
   const [hexCol, setHexCol] = useState("");
   const [hexRow, setHexRow] = useState("");
@@ -218,6 +217,35 @@ export function QuestFindings({
       )}
 
       {/* Add-finding form */}
+      {!canAdd && (
+        <div
+          style={{
+            marginTop: 8,
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            fontSize: 12,
+            color: "#9ca3af",
+          }}
+        >
+          <span>Set a player name to add findings.</span>
+          <button
+            onClick={onSetPlayerName}
+            style={{
+              background: "#4ade80",
+              color: "#000",
+              border: "none",
+              borderRadius: 4,
+              padding: "3px 10px",
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Set Name
+          </button>
+        </div>
+      )}
       {canAdd && (
         <div
           style={{
