@@ -9,6 +9,7 @@ interface ActiveQuestsProps {
   findings: QuestFinding[];
   playerName: string | null;
   isAdmin: boolean;
+  adminPin: string | null;
   onJoinQuest: (questId: string) => void;
   onLeaveQuest: (questId: string) => void;
   onEditQuest: (quest: Quest) => void;
@@ -22,6 +23,7 @@ export function ActiveQuests({
   findings,
   playerName,
   isAdmin,
+  adminPin,
   onJoinQuest,
   onLeaveQuest,
   onEditQuest,
@@ -127,6 +129,7 @@ export function ActiveQuests({
                 allQuests={quests}
                 playerName={playerName}
                 isAdmin={isAdmin}
+                adminPin={adminPin}
                 onSetPlayerName={onSetPlayerName}
               />
             )}

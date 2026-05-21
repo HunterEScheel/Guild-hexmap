@@ -18,7 +18,7 @@ export function About() {
                     color: "#e8e8f0",
                 }}
             >
-                About This Campaign
+                About This System
             </h1>
 
             <Section title="What is a West Marches Campaign?">

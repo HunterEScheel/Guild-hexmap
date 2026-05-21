@@ -50,6 +50,17 @@ const VALID_TERRAINS = [
 
 const VALID_LANDMARKS = ["dungeon", "village", "ruins", "tower"];
 
+const VALID_QUEST_LEVELS = [
+  "explore",
+  "recurring",
+  "wolf",
+  "demon",
+  "dragon",
+  "terrasque",
+  "god",
+];
+const VALID_QUEST_STATUSES = ["available", "in_progress", "completed"];
+
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), { status, headers: JSON_CORS });
 }
@@ -188,6 +199,224 @@ Deno.serve(async (req) => {
           { col, row, landmark },
           { onConflict: "col,row" }
         );
+        if (error) return serverError(error.message);
+        return ok();
+      }
+
+      // -------- Quests --------
+      case "create_quest": {
+        const q = payload;
+        if (typeof q.title !== "string" || !q.title.trim()) {
+          return badRequest("title required");
+        }
+        if (!VALID_QUEST_LEVELS.includes(q.level)) {
+          return badRequest("invalid level");
+        }
+        const insert = {
+          title: String(q.title).trim(),
+          description: String(q.description ?? ""),
+          reward: String(q.reward ?? ""),
+          level: q.level,
+          status: VALID_QUEST_STATUSES.includes(q.status) ? q.status : "available",
+          hex_col: Number(q.hexCol),
+          hex_row: Number(q.hexRow),
+          end_hex_col:
+            q.endHexCol != null && Number.isFinite(Number(q.endHexCol))
+              ? Number(q.endHexCol)
+              : null,
+          end_hex_row:
+            q.endHexRow != null && Number.isFinite(Number(q.endHexRow))
+              ? Number(q.endHexRow)
+              : null,
+          players: Array.isArray(q.players) ? q.players : [],
+          scheduled_date: q.scheduledDate ?? null,
+        };
+        const { error } = await supa.from("quests").insert(insert);
+        if (error) return serverError(error.message);
+        return ok();
+      }
+
+      case "update_quest": {
+        const id = String(payload.id ?? "");
+        if (!id) return badRequest("quest id required");
+        const updates: Record<string, unknown> = {};
+        if (payload.title !== undefined) updates.title = String(payload.title);
+        if (payload.description !== undefined)
+          updates.description = String(payload.description);
+        if (payload.reward !== undefined) updates.reward = String(payload.reward);
+        if (payload.level !== undefined) {
+          if (!VALID_QUEST_LEVELS.includes(payload.level)) {
+            return badRequest("invalid level");
+          }
+          updates.level = payload.level;
+        }
+        if (payload.status !== undefined) {
+          if (!VALID_QUEST_STATUSES.includes(payload.status)) {
+            return badRequest("invalid status");
+          }
+          updates.status = payload.status;
+        }
+        if (payload.hexCol !== undefined) updates.hex_col = Number(payload.hexCol);
+        if (payload.hexRow !== undefined) updates.hex_row = Number(payload.hexRow);
+        if (payload.endHexCol !== undefined)
+          updates.end_hex_col =
+            payload.endHexCol == null ? null : Number(payload.endHexCol);
+        if (payload.endHexRow !== undefined)
+          updates.end_hex_row =
+            payload.endHexRow == null ? null : Number(payload.endHexRow);
+        if (payload.players !== undefined)
+          updates.players = Array.isArray(payload.players) ? payload.players : [];
+        if (payload.scheduledDate !== undefined)
+          updates.scheduled_date = payload.scheduledDate ?? null;
+
+        const { error } = await supa.from("quests").update(updates).eq("id", id);
+        if (error) return serverError(error.message);
+        return ok();
+      }
+
+      case "delete_quest": {
+        const id = String(payload.id ?? "");
+        if (!id) return badRequest("quest id required");
+        const { error } = await supa.from("quests").delete().eq("id", id);
+        if (error) return serverError(error.message);
+        return ok();
+      }
+
+      // -------- Initiative tracker --------
+      case "remove_initiative_entry": {
+        const id = String(payload.id ?? "");
+        if (!id) return badRequest("entry id required");
+        const { error } = await supa
+          .from("initiative_tracker")
+          .delete()
+          .eq("id", id);
+        if (error) return serverError(error.message);
+        return ok();
+      }
+
+      case "update_initiative_hp": {
+        const id = String(payload.id ?? "");
+        const hp = Number(payload.hp);
+        if (!id) return badRequest("entry id required");
+        if (!Number.isFinite(hp)) return badRequest("hp must be a number");
+        const { error } = await supa
+          .from("initiative_tracker")
+          .update({ hp })
+          .eq("id", id);
+        if (error) return serverError(error.message);
+        return ok();
+      }
+
+      case "clear_initiative": {
+        const { error } = await supa
+          .from("initiative_tracker")
+          .delete()
+          .neq("id", "00000000-0000-0000-0000-000000000000");
+        if (error) return serverError(error.message);
+        return ok();
+      }
+
+      // -------- Shop inventory --------
+      case "shop_insert_items": {
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        if (items.length === 0) return ok();
+        const { error } = await supa.from("shop_inventory").insert(items);
+        if (error) return serverError(error.message);
+        return ok();
+      }
+
+      case "shop_update_quantity": {
+        const id = String(payload.id ?? "");
+        const quantity = Number(payload.quantity);
+        if (!id) return badRequest("id required");
+        if (!Number.isFinite(quantity) || quantity < 0) {
+          return badRequest("quantity must be >= 0");
+        }
+        if (quantity === 0) {
+          const { error } = await supa
+            .from("shop_inventory")
+            .delete()
+            .eq("id", id);
+          if (error) return serverError(error.message);
+        } else {
+          const { error } = await supa
+            .from("shop_inventory")
+            .update({ quantity })
+            .eq("id", id);
+          if (error) return serverError(error.message);
+        }
+        return ok();
+      }
+
+      case "shop_update_price": {
+        const id = String(payload.id ?? "");
+        const price = String(payload.price ?? "");
+        if (!id) return badRequest("id required");
+        const { error } = await supa
+          .from("shop_inventory")
+          .update({ price })
+          .eq("id", id);
+        if (error) return serverError(error.message);
+        return ok();
+      }
+
+      // -------- Shop restock rules --------
+      case "restock_rule_upsert": {
+        const r = payload;
+        const { error } = await supa.from("shop_restock_rules").upsert(
+          {
+            item_index: String(r.itemIndex ?? ""),
+            item_name: String(r.itemName ?? ""),
+            rarity: String(r.rarity ?? "common"),
+            dice: String(r.dice ?? "1d4"),
+            price: String(r.price ?? ""),
+            enabled: r.enabled !== false,
+          },
+          { onConflict: "item_index" }
+        );
+        if (error) return serverError(error.message);
+        return ok();
+      }
+
+      case "restock_rule_update": {
+        const id = String(payload.id ?? "");
+        if (!id) return badRequest("rule id required");
+        const updates: Record<string, unknown> = {};
+        if (payload.dice !== undefined) updates.dice = String(payload.dice);
+        if (payload.price !== undefined) updates.price = String(payload.price);
+        if (payload.rarity !== undefined) updates.rarity = String(payload.rarity);
+        if (payload.enabled !== undefined) updates.enabled = !!payload.enabled;
+        const { error } = await supa
+          .from("shop_restock_rules")
+          .update(updates)
+          .eq("id", id);
+        if (error) return serverError(error.message);
+        return ok();
+      }
+
+      case "restock_rule_delete": {
+        const id = String(payload.id ?? "");
+        if (!id) return badRequest("rule id required");
+        const { error } = await supa
+          .from("shop_restock_rules")
+          .delete()
+          .eq("id", id);
+        if (error) return serverError(error.message);
+        return ok();
+      }
+
+      // -------- Shop restock settings --------
+      case "restock_setting_update": {
+        const rarity = String(payload.rarity ?? "");
+        const count = Number(payload.count);
+        if (!rarity) return badRequest("rarity required");
+        if (!Number.isFinite(count) || count < 0) {
+          return badRequest("count must be >= 0");
+        }
+        const { error } = await supa
+          .from("shop_restock_settings")
+          .update({ count })
+          .eq("rarity", rarity);
         if (error) return serverError(error.message);
         return ok();
       }

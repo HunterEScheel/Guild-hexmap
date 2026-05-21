@@ -146,7 +146,7 @@ function mapQuest(row: Record<string, unknown>): Quest {
  * All hex writes go through the `admin-action` Edge Function. The browser
  * has no direct write access to the hexes table — RLS enforces that.
  */
-async function callAdminAction(
+export async function callAdminAction(
   pin: string,
   action: string,
   payload: Record<string, unknown>
@@ -190,44 +190,23 @@ export async function setHexLandmark(
   await callAdminAction(pin, "set_hex_landmark", { col, row, landmark });
 }
 
-export async function createQuest(quest: Omit<Quest, "id">): Promise<void> {
-  await supabase.from("quests").insert({
-    title: quest.title,
-    description: quest.description,
-    reward: quest.reward,
-    level: quest.level,
-    status: quest.status,
-    hex_col: quest.hexCol,
-    hex_row: quest.hexRow,
-    end_hex_col: quest.endHexCol,
-    end_hex_row: quest.endHexRow,
-    players: quest.players,
-    scheduled_date: quest.scheduledDate,
-  });
+export async function createQuest(
+  pin: string,
+  quest: Omit<Quest, "id">
+): Promise<void> {
+  await callAdminAction(pin, "create_quest", { ...quest });
 }
 
 export async function updateQuest(
+  pin: string,
   id: string,
   updates: Partial<Quest>
 ): Promise<void> {
-  const dbUpdates: Record<string, unknown> = {};
-  if (updates.title !== undefined) dbUpdates.title = updates.title;
-  if (updates.description !== undefined) dbUpdates.description = updates.description;
-  if (updates.reward !== undefined) dbUpdates.reward = updates.reward;
-  if (updates.level !== undefined) dbUpdates.level = updates.level;
-  if (updates.status !== undefined) dbUpdates.status = updates.status;
-  if (updates.hexCol !== undefined) dbUpdates.hex_col = updates.hexCol;
-  if (updates.hexRow !== undefined) dbUpdates.hex_row = updates.hexRow;
-  if (updates.endHexCol !== undefined) dbUpdates.end_hex_col = updates.endHexCol;
-  if (updates.endHexRow !== undefined) dbUpdates.end_hex_row = updates.endHexRow;
-  if (updates.players !== undefined) dbUpdates.players = updates.players;
-  if (updates.scheduledDate !== undefined) dbUpdates.scheduled_date = updates.scheduledDate;
-
-  await supabase.from("quests").update(dbUpdates).eq("id", id);
+  await callAdminAction(pin, "update_quest", { id, ...updates });
 }
 
-export async function deleteQuest(id: string): Promise<void> {
-  await supabase.from("quests").delete().eq("id", id);
+export async function deleteQuest(pin: string, id: string): Promise<void> {
+  await callAdminAction(pin, "delete_quest", { id });
 }
 
 export async function joinQuest(
@@ -235,47 +214,23 @@ export async function joinQuest(
   playerName: string,
   scheduledDate?: string
 ): Promise<void> {
-  const { data } = await supabase
-    .from("quests")
-    .select("players, status")
-    .eq("id", questId)
-    .single();
-
-  if (data) {
-    const players: string[] = data.players ?? [];
-    if (!players.includes(playerName)) {
-      const updates: Record<string, unknown> = {
-        players: [...players, playerName],
-        status: "in_progress",
-      };
-      if (scheduledDate) {
-        updates.scheduled_date = scheduledDate;
-      }
-      await supabase.from("quests").update(updates).eq("id", questId);
-    }
-  }
+  const { error } = await supabase.rpc("join_quest", {
+    p_quest_id: questId,
+    p_player_name: playerName,
+    p_scheduled_date: scheduledDate ?? null,
+  });
+  if (error) throw new Error(`join_quest failed: ${error.message}`);
 }
 
 export async function leaveQuest(
   questId: string,
   playerName: string
 ): Promise<void> {
-  const { data } = await supabase
-    .from("quests")
-    .select("players")
-    .eq("id", questId)
-    .single();
-
-  if (data) {
-    const players: string[] = data.players ?? [];
-    const remaining = players.filter((p) => p !== playerName);
-    const updates: Record<string, unknown> = { players: remaining };
-    if (remaining.length === 0) {
-      updates.status = "available";
-      updates.scheduled_date = null;
-    }
-    await supabase.from("quests").update(updates).eq("id", questId);
-  }
+  const { error } = await supabase.rpc("leave_quest", {
+    p_quest_id: questId,
+    p_player_name: playerName,
+  });
+  if (error) throw new Error(`leave_quest failed: ${error.message}`);
 }
 
 // --- Initiative Tracker ---
@@ -356,16 +311,23 @@ export async function addInitiativeEntry(
   });
 }
 
-export async function removeInitiativeEntry(id: string): Promise<void> {
-  await supabase.from("initiative_tracker").delete().eq("id", id);
+export async function removeInitiativeEntry(
+  pin: string,
+  id: string
+): Promise<void> {
+  await callAdminAction(pin, "remove_initiative_entry", { id });
 }
 
-export async function updateInitiativeHp(id: string, hp: number): Promise<void> {
-  await supabase.from("initiative_tracker").update({ hp }).eq("id", id);
+export async function updateInitiativeHp(
+  pin: string,
+  id: string,
+  hp: number
+): Promise<void> {
+  await callAdminAction(pin, "update_initiative_hp", { id, hp });
 }
 
-export async function clearInitiativeTracker(): Promise<void> {
-  await supabase.from("initiative_tracker").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+export async function clearInitiativeTracker(pin: string): Promise<void> {
+  await callAdminAction(pin, "clear_initiative", {});
 }
 
 // --- Quest findings ---

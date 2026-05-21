@@ -261,6 +261,7 @@ export function SidePanel({
                   onLeave={onLeaveQuest}
                   onEdit={onEditQuest}
                   onDelete={onDeleteQuest}
+                  compact
                 />
               ))
             )}

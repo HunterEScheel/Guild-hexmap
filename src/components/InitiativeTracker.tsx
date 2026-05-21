@@ -12,6 +12,7 @@ interface InitiativeTrackerProps {
   entries: InitiativeEntry[];
   playerName: string | null;
   isAdmin: boolean;
+  adminPin: string | null;
 }
 
 function hpStatus(hp: number, maxHp: number): { label: string; color: string } {
@@ -26,6 +27,7 @@ export function InitiativeTracker({
   entries,
   playerName,
   isAdmin,
+  adminPin,
 }: InitiativeTrackerProps) {
   const [initiative, setInitiative] = useState("");
   const [adding, setAdding] = useState(false);
@@ -73,7 +75,13 @@ export function InitiativeTracker({
         </h1>
         {isAdmin && entries.length > 0 && (
           <button
-            onClick={clearInitiativeTracker}
+            onClick={() => {
+              if (!adminPin) return;
+              clearInitiativeTracker(adminPin).catch((err) => {
+                console.error("clearInitiativeTracker failed:", err);
+                alert(`Admin write rejected: ${err.message}`);
+              });
+            }}
             style={{
               background: "#dc2626",
               color: "#fff",
@@ -164,6 +172,7 @@ export function InitiativeTracker({
               entry={entry}
               position={i + 1}
               isAdmin={isAdmin}
+              adminPin={adminPin}
             />
           ))}
         </div>
@@ -176,10 +185,12 @@ function InitiativeRow({
   entry,
   position,
   isAdmin,
+  adminPin,
 }: {
   entry: InitiativeEntry;
   position: number;
   isAdmin: boolean;
+  adminPin: string | null;
 }) {
   const [hpDelta, setHpDelta] = useState("");
 
@@ -189,17 +200,17 @@ function InitiativeRow({
 
   async function applyDamage() {
     const delta = parseInt(hpDelta, 10);
-    if (isNaN(delta) || !hasHp) return;
+    if (isNaN(delta) || !hasHp || !adminPin) return;
     const newHp = Math.max(0, entry.hp! - delta);
-    await updateInitiativeHp(entry.id, newHp);
+    await updateInitiativeHp(adminPin, entry.id, newHp);
     setHpDelta("");
   }
 
   async function applyHeal() {
     const delta = parseInt(hpDelta, 10);
-    if (isNaN(delta) || !hasHp) return;
+    if (isNaN(delta) || !hasHp || !adminPin) return;
     const newHp = Math.min(entry.maxHp!, entry.hp! + delta);
-    await updateInitiativeHp(entry.id, newHp);
+    await updateInitiativeHp(adminPin, entry.id, newHp);
     setHpDelta("");
   }
 
@@ -277,7 +288,13 @@ function InitiativeRow({
 
         {isAdmin && (
           <button
-            onClick={() => removeInitiativeEntry(entry.id)}
+            onClick={() => {
+              if (!adminPin) return;
+              removeInitiativeEntry(adminPin, entry.id).catch((err) => {
+                console.error("removeInitiativeEntry failed:", err);
+                alert(`Admin write rejected: ${err.message}`);
+              });
+            }}
             title="Remove"
             style={{
               background: "transparent",

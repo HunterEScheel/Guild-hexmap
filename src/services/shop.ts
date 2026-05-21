@@ -1,4 +1,5 @@
 import { supabase } from "../supabase";
+import { callAdminAction } from "../hooks/useFirebase";
 
 const OPEN5E_BASE = "https://api.open5e.com/v1";
 
@@ -158,26 +159,32 @@ export async function fetchRestockRules(): Promise<RestockRule[]> {
 }
 
 export async function addRestockRule(
+  pin: string,
   itemIndex: string,
   itemName: string,
   rarity: string,
   dice: string
 ): Promise<void> {
-  await supabase.from("shop_restock_rules").upsert(
-    { item_index: itemIndex, item_name: itemName, rarity, dice, price: "", enabled: true },
-    { onConflict: "item_index" }
-  );
+  await callAdminAction(pin, "restock_rule_upsert", {
+    itemIndex,
+    itemName,
+    rarity,
+    dice,
+    price: "",
+    enabled: true,
+  });
 }
 
 export async function updateRestockRule(
+  pin: string,
   id: string,
   updates: Partial<{ dice: string; price: string; rarity: string; enabled: boolean }>
 ): Promise<void> {
-  await supabase.from("shop_restock_rules").update(updates).eq("id", id);
+  await callAdminAction(pin, "restock_rule_update", { id, ...updates });
 }
 
-export async function deleteRestockRule(id: string): Promise<void> {
-  await supabase.from("shop_restock_rules").delete().eq("id", id);
+export async function deleteRestockRule(pin: string, id: string): Promise<void> {
+  await callAdminAction(pin, "restock_rule_delete", { id });
 }
 
 // --- Restock Settings ---
@@ -195,13 +202,11 @@ export async function fetchRestockSettings(): Promise<RestockSettings[]> {
 }
 
 export async function updateRestockSetting(
+  pin: string,
   rarity: string,
   count: number
 ): Promise<void> {
-  await supabase
-    .from("shop_restock_settings")
-    .update({ count })
-    .eq("rarity", rarity);
+  await callAdminAction(pin, "restock_setting_update", { rarity, count });
 }
 
 // --- Dice Rolling ---
@@ -397,8 +402,7 @@ function shuffle<T>(arr: T[]): T[] {
   return copy;
 }
 
-export async function executeRestock(): Promise<{ added: number }> {
-  // Get settings, rules, current inventory, and API items
+export async function executeRestock(pin: string): Promise<{ added: number }> {
   const [settings, rules, allItems, currentInventory] = await Promise.all([
     fetchRestockSettings(),
     fetchRestockRules(),
@@ -406,7 +410,6 @@ export async function executeRestock(): Promise<{ added: number }> {
     fetchShopInventory(),
   ]);
 
-  // Build lookup of existing inventory by item index
   const existingByIndex = new Map<string, ShopItem>();
   for (const item of currentInventory) {
     existingByIndex.set(item.itemIndex, item);
@@ -425,15 +428,14 @@ export async function executeRestock(): Promise<{ added: number }> {
     rules.filter((r) => r.enabled).map((r) => r.itemIndex)
   );
 
+  // Track quantity bumps so we issue one update per existing row
+  const bumps = new Map<string, number>(); // id -> delta
+
   for (const setting of settings) {
     if (setting.count <= 0) continue;
-
-    // Fetch items for this rarity from Open5e (cached per-rarity)
     const pool = await fetchItemsByRarity(setting.rarity);
     const filtered = pool.filter((i) => !ruleIndexes.has(i.index));
 
-    // Generate variant expansions — multiple unique ones (e.g. different scrolls)
-    // Roughly 1 variant per 10 items, minimum 1 per variant type
     const variantCount = Math.max(1, Math.floor(setting.count / 10));
     const expandedVariants: MagicItemDetail[] = [];
     for (const slug of VARIANT_SLUGS) {
@@ -449,10 +451,7 @@ export async function executeRestock(): Promise<{ added: number }> {
     for (const item of picked) {
       const existing = existingByIndex.get(item.index);
       if (existing) {
-        await supabase
-          .from("shop_inventory")
-          .update({ quantity: existing.quantity + 1 })
-          .eq("id", existing.id);
+        bumps.set(existing.id, (bumps.get(existing.id) ?? 0) + 1);
         existing.quantity += 1;
       } else {
         inserts.push({
@@ -467,26 +466,21 @@ export async function executeRestock(): Promise<{ added: number }> {
     }
   }
 
-  // Apply specific restock rules — add to existing quantity or create new
   for (const rule of rules) {
     if (!rule.enabled) continue;
     const qty = rollDice(rule.dice);
     if (qty <= 0) continue;
 
     if (VARIANT_SLUGS.has(rule.itemIndex)) {
-      // Expand each unit individually so each gets a unique variant
       for (let i = 0; i < qty; i++) {
         const expanded = await expandVariant(rule.itemIndex, rule.rarity);
         if (!expanded) continue;
         const existing = existingByIndex.get(expanded.index);
         if (existing) {
-          await supabase
-            .from("shop_inventory")
-            .update({ quantity: existing.quantity + 1 })
-            .eq("id", existing.id);
+          bumps.set(existing.id, (bumps.get(existing.id) ?? 0) + 1);
           existing.quantity += 1;
         } else {
-          const newItem: ShopItem = {
+          const placeholder: ShopItem = {
             id: crypto.randomUUID(),
             itemIndex: expanded.index,
             itemName: expanded.name,
@@ -495,7 +489,7 @@ export async function executeRestock(): Promise<{ added: number }> {
             quantity: 1,
             price: rule.price || defaultPrice(expanded.rarity),
           };
-          existingByIndex.set(expanded.index, newItem);
+          existingByIndex.set(expanded.index, placeholder);
           inserts.push({
             item_index: expanded.index,
             item_name: expanded.name,
@@ -511,10 +505,7 @@ export async function executeRestock(): Promise<{ added: number }> {
       const itemDesc = detail?.description ?? "";
       const existing = existingByIndex.get(rule.itemIndex);
       if (existing) {
-        await supabase
-          .from("shop_inventory")
-          .update({ quantity: existing.quantity + qty })
-          .eq("id", existing.id);
+        bumps.set(existing.id, (bumps.get(existing.id) ?? 0) + qty);
         existing.quantity += qty;
       } else {
         inserts.push({
@@ -529,36 +520,37 @@ export async function executeRestock(): Promise<{ added: number }> {
     }
   }
 
-  // Insert new items
+  // Apply all writes via admin-action (one quantity-update per existing row,
+  // one batch insert for new items).
+  const currentQtyById = new Map<string, number>();
+  for (const item of currentInventory) currentQtyById.set(item.id, item.quantity);
+  await Promise.all(
+    [...bumps.entries()].map(([id, delta]) =>
+      callAdminAction(pin, "shop_update_quantity", {
+        id,
+        quantity: (currentQtyById.get(id) ?? 0) + delta,
+      })
+    )
+  );
   if (inserts.length > 0) {
-    await supabase.from("shop_inventory").insert(inserts);
+    await callAdminAction(pin, "shop_insert_items", { items: inserts });
   }
 
   return { added: inserts.length };
 }
 
 export async function purchaseItem(id: string): Promise<void> {
-  const { data } = await supabase
-    .from("shop_inventory")
-    .select("quantity")
-    .eq("id", id)
-    .single();
-
-  if (data && data.quantity > 1) {
-    await supabase
-      .from("shop_inventory")
-      .update({ quantity: data.quantity - 1 })
-      .eq("id", id);
-  } else {
-    await supabase.from("shop_inventory").delete().eq("id", id);
-  }
+  // Player-facing: goes through a Postgres RPC that decrements or deletes.
+  const { error } = await supabase.rpc("purchase_shop_item", { p_id: id });
+  if (error) throw new Error(`purchase_shop_item failed: ${error.message}`);
 }
 
 export async function updateShopItemPrice(
+  pin: string,
   id: string,
   price: string
 ): Promise<void> {
-  await supabase.from("shop_inventory").update({ price }).eq("id", id);
+  await callAdminAction(pin, "shop_update_price", { id, price });
 }
 
 // --- Magic Item Search (for adding restock rules) ---

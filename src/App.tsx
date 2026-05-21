@@ -202,25 +202,36 @@ function App() {
     });
   }, []);
 
-  const handleDeleteQuest = useCallback((questId: string) => {
-    deleteQuest(questId);
-  }, []);
+  const handleDeleteQuest = useCallback(
+    (questId: string) => {
+      if (!adminPin) return;
+      deleteQuest(adminPin, questId).catch((err) => {
+        console.error("deleteQuest failed:", err);
+        alert(`Admin write rejected: ${err.message}`);
+      });
+    },
+    [adminPin]
+  );
 
   const handleQuestSave = useCallback(
     (questData: Omit<Quest, "id">) => {
-      if (questEditor.quest) {
-        updateQuest(questEditor.quest.id, questData);
-      } else {
-        createQuest(questData);
-      }
+      if (!adminPin) return;
+      const op = questEditor.quest
+        ? updateQuest(adminPin, questEditor.quest.id, questData)
+        : createQuest(adminPin, questData);
+      op.catch((err) => {
+        console.error("quest save failed:", err);
+        alert(`Admin write rejected: ${err.message}`);
+      });
       setQuestEditor({ isOpen: false, hexCol: 0, hexRow: 0 });
     },
-    [questEditor.quest]
+    [adminPin, questEditor.quest]
   );
 
   const handleRunEncounter = useCallback(async (encounter: GeneratedEncounter) => {
+    if (!adminPin) return;
     try {
-      await clearInitiativeTracker();
+      await clearInitiativeTracker(adminPin);
       const entries: { name: string; initiative: number; isCreature: boolean; stats: { hp: number; ac: number; cr: number } }[] = [];
       for (const group of encounter.groups) {
         for (let i = 0; i < group.count; i++) {
@@ -247,7 +258,7 @@ function App() {
       console.error("Failed to run encounter:", err);
     }
     setGuildSub("initiative");
-  }, []);
+  }, [adminPin]);
 
   const selectedHexData = selectedHex
     ? hexes.get(`${selectedHex.col}_${selectedHex.row}`)
@@ -453,6 +464,7 @@ function App() {
             findings={questFindings}
             playerName={playerName}
             isAdmin={isAdmin}
+            adminPin={adminPin}
             onJoinQuest={handleJoinQuest}
             onLeaveQuest={handleLeaveQuest}
             onEditQuest={handleEditQuest}
@@ -466,7 +478,7 @@ function App() {
         </div>
       ) : topPage === "guild" && guildSub === "shop" ? (
         <div style={{ flex: 1, overflow: "auto" }}>
-          <Shop isAdmin={isAdmin} />
+          <Shop isAdmin={isAdmin} adminPin={adminPin} />
         </div>
       ) : topPage === "guild" && guildSub === "initiative" ? (
         <div style={{ flex: 1, overflow: "auto" }}>
@@ -474,6 +486,7 @@ function App() {
             entries={initiativeEntries}
             playerName={playerName}
             isAdmin={isAdmin}
+            adminPin={adminPin}
           />
         </div>
       ) : topPage === "about" && aboutSub === "system" ? (

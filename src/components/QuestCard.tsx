@@ -18,6 +18,12 @@ interface QuestCardProps {
   expandedExtras?: React.ReactNode;
   /** Force-open the card on first render (e.g. for completed quests). */
   defaultExpanded?: boolean;
+  /**
+   * When true, only title / difficulty / status are visible until expanded.
+   * Description, reward, adventurer count, party, schedule, and action
+   * buttons all move into the expanded section. Used by the SidePanel.
+   */
+  compact?: boolean;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -36,11 +42,13 @@ export function QuestCard({
   onDelete,
   expandedExtras,
   defaultExpanded = false,
+  compact = false,
 }: QuestCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const levelColor = QUEST_LEVEL_COLORS[quest.level];
   const hasJoined = playerName ? quest.players.includes(playerName) : false;
   const canJoin = !hasJoined && quest.status !== "completed";
+  const showDetails = !compact || expanded;
 
   return (
     <div
@@ -77,14 +85,18 @@ export function QuestCard({
         </span>
       </div>
 
-      <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 6 }}>
-        {quest.description}
-      </p>
+      {showDetails && (
+        <>
+          <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 6 }}>
+            {quest.description}
+          </p>
 
-      {quest.reward && (
-        <p style={{ color: "#fbbf24", fontSize: 12, marginBottom: 6 }}>
-          Reward: {quest.reward}
-        </p>
+          {quest.reward && (
+            <p style={{ color: "#fbbf24", fontSize: 12, marginBottom: 6 }}>
+              Reward: {quest.reward}
+            </p>
+          )}
+        </>
       )}
 
       <div
@@ -108,9 +120,12 @@ export function QuestCard({
         >
           {STATUS_LABELS[quest.status]}
         </span>
-        <span style={{ fontSize: 11, color: "#6b7280" }}>
-          {quest.players.length} adventurer{quest.players.length !== 1 ? "s" : ""}
-        </span>
+        {showDetails && (
+          <span style={{ fontSize: 11, color: "#6b7280" }}>
+            {quest.players.length} adventurer
+            {quest.players.length !== 1 ? "s" : ""}
+          </span>
+        )}
       </div>
 
       {/* Expanded details: schedule, party, extras (findings) */}
@@ -166,70 +181,74 @@ export function QuestCard({
           {expanded ? "Hide details" : "Details"}
         </button>
 
-        {canJoin && (
-          <button
-            onClick={() => onJoin(quest.id)}
-            style={{
-              background: "#4ade80",
-              color: "#000",
-              border: "none",
-              borderRadius: 4,
-              padding: "4px 12px",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Join Quest
-          </button>
-        )}
-        {hasJoined && quest.status !== "completed" && (
-          <button
-            onClick={() => onLeave(quest.id)}
-            style={{
-              background: "#ef4444",
-              color: "#fff",
-              border: "none",
-              borderRadius: 4,
-              padding: "4px 12px",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Leave
-          </button>
-        )}
-        {isAdmin && (
+        {showDetails && (
           <>
-            <button
-              onClick={() => onEdit(quest)}
-              style={{
-                background: "#6366f1",
-                color: "#fff",
-                border: "none",
-                borderRadius: 4,
-                padding: "4px 12px",
-                fontSize: 12,
-                cursor: "pointer",
-              }}
-            >
-              Edit
-            </button>
-            <button
-              onClick={() => onDelete(quest.id)}
-              style={{
-                background: "#7f1d1d",
-                color: "#fff",
-                border: "none",
-                borderRadius: 4,
-                padding: "4px 12px",
-                fontSize: 12,
-                cursor: "pointer",
-              }}
-            >
-              Delete
-            </button>
+            {canJoin && (
+              <button
+                onClick={() => onJoin(quest.id)}
+                style={{
+                  background: "#4ade80",
+                  color: "#000",
+                  border: "none",
+                  borderRadius: 4,
+                  padding: "4px 12px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Join
+              </button>
+            )}
+            {hasJoined && quest.status !== "completed" && (
+              <button
+                onClick={() => onLeave(quest.id)}
+                style={{
+                  background: "#ef4444",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 4,
+                  padding: "4px 12px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Leave
+              </button>
+            )}
+            {isAdmin && (
+              <>
+                <button
+                  onClick={() => onEdit(quest)}
+                  style={{
+                    background: "#6366f1",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 4,
+                    padding: "4px 12px",
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => onDelete(quest.id)}
+                  style={{
+                    background: "#7f1d1d",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 4,
+                    padding: "4px 12px",
+                    fontSize: 12,
+                    cursor: "pointer",
+                  }}
+                >
+                  Delete
+                </button>
+              </>
+            )}
           </>
         )}
       </div>

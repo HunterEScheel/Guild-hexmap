@@ -20,6 +20,8 @@ interface QuestFindingsProps {
   allQuests: Quest[];
   playerName: string | null;
   isAdmin: boolean;
+  /** Admin PIN, required for "Add as Quest" on AI suggestions. */
+  adminPin: string | null;
   /** Called when the player has no name set and tries to submit. */
   onSetPlayerName: () => void;
 }
@@ -40,6 +42,7 @@ export function QuestFindings({
   allQuests,
   playerName,
   isAdmin,
+  adminPin,
   onSetPlayerName,
 }: QuestFindingsProps) {
   const canAdd = playerName != null || isAdmin;
@@ -308,6 +311,7 @@ export function QuestFindings({
         <SuggestionsPanel
           suggestions={suggestions}
           error={genError}
+          adminPin={adminPin}
           onDismiss={() => {
             setSuggestions(null);
             setGenError(null);
@@ -321,19 +325,25 @@ export function QuestFindings({
 function SuggestionsPanel({
   suggestions,
   error,
+  adminPin,
   onDismiss,
 }: {
   suggestions: QuestSuggestion[] | null;
   error: string | null;
+  adminPin: string | null;
   onDismiss: () => void;
 }) {
   const [creating, setCreating] = useState<number | null>(null);
   const [created, setCreated] = useState<Set<number>>(new Set());
 
   async function handleCreate(i: number, s: QuestSuggestion) {
+    if (!adminPin) {
+      alert("Admin PIN missing — log in again.");
+      return;
+    }
     setCreating(i);
     try {
-      await createQuest({
+      await createQuest(adminPin, {
         title: s.title,
         description: s.description,
         reward: s.reward,
