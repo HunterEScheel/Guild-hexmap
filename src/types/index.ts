@@ -59,18 +59,13 @@ export interface Quest {
   scheduledDate: string | null;
 }
 
-export interface ReportFinding {
+export interface QuestFinding {
+  id: string;
+  questId: string;
+  author: string;
   hexCol: number;
   hexRow: number;
   description: string;
-}
-
-export interface Report {
-  id: string;
-  author: string;
-  title: string;
-  content: string;
-  findings: ReportFinding[];
   createdAt: string;
 }
 

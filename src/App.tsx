@@ -14,12 +14,11 @@ import { World } from "./components/World";
 import { Shop } from "./components/Shop";
 import { ActiveQuests } from "./components/ActiveQuests";
 import { InitiativeTracker } from "./components/InitiativeTracker";
-import { Reports } from "./components/Reports";
 import {
   useHexData,
   useQuests,
   useInitiative,
-  useReports,
+  useQuestFindings,
   setHexTerrain,
   setHexChallengeTier,
   setHexLandmark,
@@ -43,8 +42,7 @@ type GuildSub =
   | "active-quests"
   | "bounties"
   | "shop"
-  | "initiative"
-  | "reports";
+  | "initiative";
 type AboutSub = "system" | "world" | "characters";
 
 function App() {
@@ -54,7 +52,7 @@ function App() {
   const hexes = useHexData();
   const quests = useQuests();
   const initiativeEntries = useInitiative();
-  const reports = useReports();
+  const questFindings = useQuestFindings();
   const isMobile = useIsMobile();
   const [sidePanelOpen, setSidePanelOpen] = useState(!isMobile);
 
@@ -323,7 +321,6 @@ function App() {
             <SubTab label="Bounty Board" active={guildSub === "bounties"} onClick={() => setGuildSub("bounties")} />
             <SubTab label="Shop" active={guildSub === "shop"} onClick={() => setGuildSub("shop")} />
             <SubTab label="Initiative" active={guildSub === "initiative"} onClick={() => setGuildSub("initiative")} />
-            <SubTab label="Reports" active={guildSub === "reports"} onClick={() => setGuildSub("reports")} />
           </>
         ) : (
           <>
@@ -452,12 +449,15 @@ function App() {
         <div style={{ flex: 1, overflow: "auto" }}>
           <ActiveQuests
             quests={quests}
+            hexes={hexes}
+            findings={questFindings}
             playerName={playerName}
             isAdmin={isAdmin}
             onJoinQuest={handleJoinQuest}
             onLeaveQuest={handleLeaveQuest}
             onEditQuest={handleEditQuest}
             onDeleteQuest={handleDeleteQuest}
+            onSetPlayerName={() => setShowNameModal(true)}
           />
         </div>
       ) : topPage === "guild" && guildSub === "bounties" ? (
@@ -474,17 +474,6 @@ function App() {
             entries={initiativeEntries}
             playerName={playerName}
             isAdmin={isAdmin}
-          />
-        </div>
-      ) : topPage === "guild" && guildSub === "reports" ? (
-        <div style={{ flex: 1, overflow: "auto" }}>
-          <Reports
-            reports={reports}
-            hexes={hexes}
-            quests={quests}
-            playerName={playerName}
-            isAdmin={isAdmin}
-            onSetPlayerName={() => setShowNameModal(true)}
           />
         </div>
       ) : topPage === "about" && aboutSub === "system" ? (

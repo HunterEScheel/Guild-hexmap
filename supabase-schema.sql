@@ -106,21 +106,19 @@ create table where not exists quests (
   created_at timestamptz default now()
 );
 
--- Player reports (field updates submitted by players)
-create table if not exists reports (
+-- Quest findings (player-reported observations attached to a completed quest)
+create table if not exists quest_findings (
   id uuid default gen_random_uuid() primary key,
+  quest_id uuid not null references quests(id) on delete cascade,
   author text not null,
-  title text not null default '',
-  content text not null,
-  findings jsonb not null default '[]'::jsonb,
+  hex_col integer not null,
+  hex_row integer not null,
+  description text not null default '',
   created_at timestamptz default now()
 );
 
--- Migration: add findings to existing reports table
--- alter table reports add column if not exists findings jsonb not null default '[]'::jsonb;
-
-alter table reports enable row level security;
-create policy "Allow all access to reports" on reports
+alter table quest_findings enable row level security;
+create policy "Allow all access to quest_findings" on quest_findings
   for all using (true) with check (true);
 
 -- Initiative tracker (shared turn order for encounters)
@@ -144,7 +142,7 @@ create policy "Allow all access to initiative_tracker" on initiative_tracker
 alter publication supabase_realtime add table hexes;
 alter publication supabase_realtime add table quests;
 alter publication supabase_realtime add table initiative_tracker;
-alter publication supabase_realtime add table reports;
+alter publication supabase_realtime add table quest_findings;
 
 -- Row Level Security
 alter table hexes enable row level security;

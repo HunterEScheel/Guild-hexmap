@@ -6,8 +6,7 @@ import type {
   Quest,
   TerrainType,
   InitiativeEntry,
-  Report,
-  ReportFinding,
+  QuestFinding,
   QuestSuggestion,
   Landmark,
 } from "../types/index";
@@ -369,68 +368,51 @@ export async function clearInitiativeTracker(): Promise<void> {
   await supabase.from("initiative_tracker").delete().neq("id", "00000000-0000-0000-0000-000000000000");
 }
 
-// --- Reports ---
+// --- Quest findings ---
 
-function mapReport(row: Record<string, unknown>): Report {
-  const rawFindings = row.findings;
-  let findings: ReportFinding[] = [];
-  if (Array.isArray(rawFindings)) {
-    findings = rawFindings
-      .map((f) => {
-        if (!f || typeof f !== "object") return null;
-        const ff = f as Record<string, unknown>;
-        const hexCol = Number(ff.hexCol ?? ff.hex_col);
-        const hexRow = Number(ff.hexRow ?? ff.hex_row);
-        if (!Number.isFinite(hexCol) || !Number.isFinite(hexRow)) return null;
-        return {
-          hexCol,
-          hexRow,
-          description: String(ff.description ?? "").trim(),
-        };
-      })
-      .filter((f): f is ReportFinding => f !== null);
-  }
+function mapQuestFinding(row: Record<string, unknown>): QuestFinding {
   return {
     id: row.id as string,
+    questId: row.quest_id as string,
     author: row.author as string,
-    title: (row.title as string) ?? "",
-    content: row.content as string,
-    findings,
+    hexCol: row.hex_col as number,
+    hexRow: row.hex_row as number,
+    description: (row.description as string) ?? "",
     createdAt: row.created_at as string,
   };
 }
 
-export function useReports(): Report[] {
-  const [reports, setReports] = useState<Report[]>([]);
+export function useQuestFindings(): QuestFinding[] {
+  const [findings, setFindings] = useState<QuestFinding[]>([]);
 
   useEffect(() => {
     supabase
-      .from("reports")
+      .from("quest_findings")
       .select("*")
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: true })
       .then(({ data }) => {
-        if (data) setReports(data.map(mapReport));
+        if (data) setFindings(data.map(mapQuestFinding));
       });
 
     const channel = supabase
-      .channel("reports-changes")
+      .channel("quest-findings-changes")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "reports" },
+        { event: "*", schema: "public", table: "quest_findings" },
         (payload) => {
-          setReports((prev) => {
+          setFindings((prev) => {
             if (payload.eventType === "DELETE") {
               const old = payload.old as { id: string };
-              return prev.filter((r) => r.id !== old.id);
+              return prev.filter((f) => f.id !== old.id);
             }
             if (payload.eventType === "INSERT") {
-              return [mapReport(payload.new), ...prev];
+              return [...prev, mapQuestFinding(payload.new)];
             }
             // UPDATE
-            return prev.map((r) =>
-              r.id === (payload.new as { id: string }).id
-                ? mapReport(payload.new)
-                : r
+            return prev.map((f) =>
+              f.id === (payload.new as { id: string }).id
+                ? mapQuestFinding(payload.new)
+                : f
             );
           });
         }
@@ -442,41 +424,39 @@ export function useReports(): Report[] {
     };
   }, []);
 
-  return reports;
+  return findings;
 }
 
-export async function createReport(
+export async function createQuestFinding(
+  questId: string,
   author: string,
-  title: string,
-  content: string,
-  findings: ReportFinding[] = []
+  hexCol: number,
+  hexRow: number,
+  description: string
 ): Promise<void> {
-  await supabase.from("reports").insert({
+  await supabase.from("quest_findings").insert({
+    quest_id: questId,
     author,
-    title: title.trim(),
-    content: content.trim(),
-    findings: findings.map((f) => ({
-      hexCol: f.hexCol,
-      hexRow: f.hexRow,
-      description: f.description.trim(),
-    })),
+    hex_col: hexCol,
+    hex_row: hexRow,
+    description: description.trim(),
   });
 }
 
-export async function deleteReport(id: string): Promise<void> {
-  await supabase.from("reports").delete().eq("id", id);
+export async function deleteQuestFinding(id: string): Promise<void> {
+  await supabase.from("quest_findings").delete().eq("id", id);
 }
 
 /**
- * Send a report (plus the current map/quest/report context) to the
- * `generate-quests` Supabase Edge Function, which calls OpenAI server-side
- * and returns structured quest suggestions for the admin to review.
+ * Generate quest suggestions from a completed quest's findings.
+ * Sends the quest, its findings, and the world state to the
+ * `generate-quests` Edge Function which calls OpenAI server-side.
  */
-export async function generateQuestsFromReport(
-  reportId: string,
+export async function generateQuestsFromQuest(
+  questId: string,
   hexes: Map<string, HexData>,
   quests: Quest[],
-  allReports: Report[]
+  findings: QuestFinding[]
 ): Promise<QuestSuggestion[]> {
   const filledHexes = Array.from(hexes.values()).filter(
     (h) => h.terrain !== "unknown"
@@ -484,14 +464,16 @@ export async function generateQuestsFromReport(
 
   const { data, error } = await supabase.functions.invoke("generate-quests", {
     body: {
-      reportId,
+      questId,
       hexes: filledHexes.map((h) => ({
         col: h.col,
         row: h.row,
         terrain: h.terrain,
         challengeTier: h.challengeTier,
+        landmark: h.landmark,
       })),
       quests: quests.map((q) => ({
+        id: q.id,
         title: q.title,
         description: q.description,
         level: q.level,
@@ -501,13 +483,12 @@ export async function generateQuestsFromReport(
         endHexCol: q.endHexCol,
         endHexRow: q.endHexRow,
       })),
-      reports: allReports.map((r) => ({
-        id: r.id,
-        author: r.author,
-        title: r.title,
-        content: r.content,
-        findings: r.findings,
-        createdAt: r.createdAt,
+      findings: findings.map((f) => ({
+        author: f.author,
+        hexCol: f.hexCol,
+        hexRow: f.hexRow,
+        description: f.description,
+        createdAt: f.createdAt,
       })),
     },
   });

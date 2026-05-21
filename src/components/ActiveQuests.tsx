@@ -1,25 +1,32 @@
 import { useMemo } from "react";
 import { QuestCard } from "./QuestCard";
-import type { Quest } from "../types";
+import { QuestFindings } from "./QuestFindings";
+import type { HexData, Quest, QuestFinding } from "../types";
 
 interface ActiveQuestsProps {
   quests: Quest[];
+  hexes: Map<string, HexData>;
+  findings: QuestFinding[];
   playerName: string | null;
   isAdmin: boolean;
   onJoinQuest: (questId: string) => void;
   onLeaveQuest: (questId: string) => void;
   onEditQuest: (quest: Quest) => void;
   onDeleteQuest: (questId: string) => void;
+  onSetPlayerName: () => void;
 }
 
 export function ActiveQuests({
   quests,
+  hexes,
+  findings,
   playerName,
   isAdmin,
   onJoinQuest,
   onLeaveQuest,
   onEditQuest,
   onDeleteQuest,
+  onSetPlayerName,
 }: ActiveQuestsProps) {
   const { inProgress, recruiting, completed } = useMemo(() => {
     const inProgress: Quest[] = [];
@@ -112,6 +119,17 @@ export function ActiveQuests({
             onEdit={onEditQuest}
             onDelete={onDeleteQuest}
             accentColor="#4ade80"
+            renderFooter={(quest) => (
+              <QuestFindings
+                quest={quest}
+                findings={findings.filter((f) => f.questId === quest.id)}
+                hexes={hexes}
+                allQuests={quests}
+                playerName={playerName}
+                isAdmin={isAdmin}
+                onSetPlayerName={onSetPlayerName}
+              />
+            )}
           />
         </>
       )}
@@ -129,6 +147,7 @@ function QuestSection({
   onEdit,
   onDelete,
   accentColor,
+  renderFooter,
 }: {
   title: string;
   quests: Quest[];
@@ -139,6 +158,7 @@ function QuestSection({
   onEdit: (quest: Quest) => void;
   onDelete: (questId: string) => void;
   accentColor: string;
+  renderFooter?: (quest: Quest) => React.ReactNode;
 }) {
   if (quests.length === 0) return null;
 
@@ -198,6 +218,7 @@ function QuestSection({
               onEdit={onEdit}
               onDelete={onDelete}
             />
+            {renderFooter && renderFooter(quest)}
           </div>
         ))}
       </div>
