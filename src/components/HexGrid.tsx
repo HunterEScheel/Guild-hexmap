@@ -115,14 +115,20 @@ export function HexGrid({
     (e: React.PointerEvent<SVGSVGElement>) => {
       // Only primary mouse button, middle button, or touch/pen — ignore right-click.
       if (e.pointerType === "mouse" && e.button !== 0 && e.button !== 1) return;
-      svgRef.current?.setPointerCapture(e.pointerId);
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
       if (pointers.current.size === 1) {
         dragStart.current = { x: e.clientX, y: e.clientY };
         dragMoved.current = false;
         // Mouse middle-button or shift-click: pan immediately, no threshold.
+        // Take pointer capture only in this case (otherwise click would
+        // re-target to the SVG and the hex polygon's onClick wouldn't fire).
         if (e.pointerType === "mouse" && (e.button === 1 || e.shiftKey)) {
+          try {
+            svgRef.current?.setPointerCapture(e.pointerId);
+          } catch {
+            // ignore — capture isn't critical
+          }
           dragMoved.current = true;
           setIsPanning(true);
           e.preventDefault();
@@ -132,6 +138,14 @@ export function HexGrid({
         lastPinchDist.current = Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y);
         // Two-finger gesture cancels any in-progress single-pointer drag.
         dragStart.current = null;
+        // Take capture for both pointers so the gesture sticks.
+        for (const pid of pointers.current.keys()) {
+          try {
+            svgRef.current?.setPointerCapture(pid);
+          } catch {
+            // ignore
+          }
+        }
       }
     },
     []
@@ -150,6 +164,14 @@ export function HexGrid({
         const dy = e.clientY - dragStart.current.y;
         if (!dragMoved.current) {
           if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+          // Crossed threshold — now we know it's a drag. Take capture so the
+          // following pointer events stick even if the cursor exits the SVG,
+          // and so the synthetic click after pointerup can be suppressed.
+          try {
+            svg.setPointerCapture(e.pointerId);
+          } catch {
+            // ignore
+          }
           dragMoved.current = true;
           setIsPanning(true);
         }
