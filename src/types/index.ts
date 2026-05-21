@@ -55,3 +55,27 @@ export interface Quest {
   players: string[];
   scheduledDate: string | null;
 }
+
+export interface Report {
+  id: string;
+  author: string;
+  title: string;
+  content: string;
+  createdAt: string;
+}
+
+/**
+ * AI-generated quest suggestion derived from a player report.
+ * Lightweight version of Quest — admin reviews/edits before persisting.
+ */
+export interface QuestSuggestion {
+  title: string;
+  description: string;
+  reward: string;
+  level: QuestLevel;
+  hexCol: number;
+  hexRow: number;
+  endHexCol: number | null;
+  endHexRow: number | null;
+  rationale: string;
+}

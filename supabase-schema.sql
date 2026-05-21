@@ -103,6 +103,19 @@ create table where not exists quests (
   created_at timestamptz default now()
 );
 
+-- Player reports (field updates submitted by players)
+create table if not exists reports (
+  id uuid default gen_random_uuid() primary key,
+  author text not null,
+  title text not null default '',
+  content text not null,
+  created_at timestamptz default now()
+);
+
+alter table reports enable row level security;
+create policy "Allow all access to reports" on reports
+  for all using (true) with check (true);
+
 -- Initiative tracker (shared turn order for encounters)
 create table if not exists initiative_tracker (
   id uuid default gen_random_uuid() primary key,
@@ -124,6 +137,7 @@ create policy "Allow all access to initiative_tracker" on initiative_tracker
 alter publication supabase_realtime add table hexes;
 alter publication supabase_realtime add table quests;
 alter publication supabase_realtime add table initiative_tracker;
+alter publication supabase_realtime add table reports;
 
 -- Row Level Security (allow all for now — public game)
 alter table hexes enable row level security;

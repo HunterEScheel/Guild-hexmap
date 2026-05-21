@@ -14,10 +14,12 @@ import { World } from "./components/World";
 import { Shop } from "./components/Shop";
 import { ActiveQuests } from "./components/ActiveQuests";
 import { InitiativeTracker } from "./components/InitiativeTracker";
+import { Reports } from "./components/Reports";
 import {
   useHexData,
   useQuests,
   useInitiative,
+  useReports,
   setHexTerrain,
   setHexChallengeTier,
   createQuest,
@@ -35,7 +37,13 @@ import type { ChallengeTier, Quest, TerrainType } from "./types";
 import "./index.css";
 
 type TopPage = "guild" | "about";
-type GuildSub = "map" | "active-quests" | "bounties" | "shop" | "initiative";
+type GuildSub =
+  | "map"
+  | "active-quests"
+  | "bounties"
+  | "shop"
+  | "initiative"
+  | "reports";
 type AboutSub = "system" | "world" | "characters";
 
 function App() {
@@ -45,6 +53,7 @@ function App() {
   const hexes = useHexData();
   const quests = useQuests();
   const initiativeEntries = useInitiative();
+  const reports = useReports();
   const isMobile = useIsMobile();
   const [sidePanelOpen, setSidePanelOpen] = useState(!isMobile);
 
@@ -296,6 +305,7 @@ function App() {
             <SubTab label="Bounty Board" active={guildSub === "bounties"} onClick={() => setGuildSub("bounties")} />
             <SubTab label="Shop" active={guildSub === "shop"} onClick={() => setGuildSub("shop")} />
             <SubTab label="Initiative" active={guildSub === "initiative"} onClick={() => setGuildSub("initiative")} />
+            <SubTab label="Reports" active={guildSub === "reports"} onClick={() => setGuildSub("reports")} />
           </>
         ) : (
           <>
@@ -444,6 +454,17 @@ function App() {
             entries={initiativeEntries}
             playerName={playerName}
             isAdmin={isAdmin}
+          />
+        </div>
+      ) : topPage === "guild" && guildSub === "reports" ? (
+        <div style={{ flex: 1, overflow: "auto" }}>
+          <Reports
+            reports={reports}
+            hexes={hexes}
+            quests={quests}
+            playerName={playerName}
+            isAdmin={isAdmin}
+            onSetPlayerName={() => setShowNameModal(true)}
           />
         </div>
       ) : topPage === "about" && aboutSub === "system" ? (

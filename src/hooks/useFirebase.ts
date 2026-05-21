@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
-import type { ChallengeTier, HexData, Quest, TerrainType, InitiativeEntry } from "../types/index";
+import type {
+  ChallengeTier,
+  HexData,
+  Quest,
+  TerrainType,
+  InitiativeEntry,
+  Report,
+  QuestSuggestion,
+} from "../types/index";
 
 export function useHexData(): Map<string, HexData> {
   const [hexes, setHexes] = useState<Map<string, HexData>>(new Map());
@@ -332,4 +340,131 @@ export async function updateInitiativeHp(id: string, hp: number): Promise<void> 
 
 export async function clearInitiativeTracker(): Promise<void> {
   await supabase.from("initiative_tracker").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+}
+
+// --- Reports ---
+
+function mapReport(row: Record<string, unknown>): Report {
+  return {
+    id: row.id as string,
+    author: row.author as string,
+    title: (row.title as string) ?? "",
+    content: row.content as string,
+    createdAt: row.created_at as string,
+  };
+}
+
+export function useReports(): Report[] {
+  const [reports, setReports] = useState<Report[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("reports")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        if (data) setReports(data.map(mapReport));
+      });
+
+    const channel = supabase
+      .channel("reports-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "reports" },
+        (payload) => {
+          setReports((prev) => {
+            if (payload.eventType === "DELETE") {
+              const old = payload.old as { id: string };
+              return prev.filter((r) => r.id !== old.id);
+            }
+            if (payload.eventType === "INSERT") {
+              return [mapReport(payload.new), ...prev];
+            }
+            // UPDATE
+            return prev.map((r) =>
+              r.id === (payload.new as { id: string }).id
+                ? mapReport(payload.new)
+                : r
+            );
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  return reports;
+}
+
+export async function createReport(
+  author: string,
+  title: string,
+  content: string
+): Promise<void> {
+  await supabase.from("reports").insert({
+    author,
+    title: title.trim(),
+    content: content.trim(),
+  });
+}
+
+export async function deleteReport(id: string): Promise<void> {
+  await supabase.from("reports").delete().eq("id", id);
+}
+
+/**
+ * Send a report (plus the current map/quest/report context) to the
+ * `generate-quests` Supabase Edge Function, which calls OpenAI server-side
+ * and returns structured quest suggestions for the admin to review.
+ */
+export async function generateQuestsFromReport(
+  reportId: string,
+  hexes: Map<string, HexData>,
+  quests: Quest[],
+  allReports: Report[]
+): Promise<QuestSuggestion[]> {
+  const filledHexes = Array.from(hexes.values()).filter(
+    (h) => h.terrain !== "unknown"
+  );
+
+  const { data, error } = await supabase.functions.invoke("generate-quests", {
+    body: {
+      reportId,
+      hexes: filledHexes.map((h) => ({
+        col: h.col,
+        row: h.row,
+        terrain: h.terrain,
+        challengeTier: h.challengeTier,
+      })),
+      quests: quests.map((q) => ({
+        title: q.title,
+        description: q.description,
+        level: q.level,
+        status: q.status,
+        hexCol: q.hexCol,
+        hexRow: q.hexRow,
+        endHexCol: q.endHexCol,
+        endHexRow: q.endHexRow,
+      })),
+      reports: allReports.map((r) => ({
+        id: r.id,
+        author: r.author,
+        title: r.title,
+        content: r.content,
+        createdAt: r.createdAt,
+      })),
+    },
+  });
+
+  if (error) {
+    throw new Error(`Edge function error: ${error.message}`);
+  }
+  const suggestions = (data as { suggestions?: QuestSuggestion[] })?.suggestions;
+  if (!Array.isArray(suggestions)) {
+    throw new Error("Edge function returned no suggestions array");
+  }
+  return suggestions;
 }
