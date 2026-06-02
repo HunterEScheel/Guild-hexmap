@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   addInitiativeEntry,
   removeInitiativeEntry,
@@ -6,6 +6,8 @@ import {
   updateInitiativeHp,
 } from "../hooks/useFirebase";
 import { formatCr } from "../data/bestiary";
+import { searchCreatures } from "../services/dnd5e";
+import type { CreatureSearchResult } from "../services/dnd5e";
 import type { InitiativeEntry } from "../types";
 
 interface InitiativeTrackerProps {
@@ -32,6 +34,43 @@ export function InitiativeTracker({
   const [initiative, setInitiative] = useState("");
   const [adding, setAdding] = useState(false);
 
+  // Admin "add creature" form
+  const [manualMode, setManualMode] = useState(false);
+  const [creatureName, setCreatureName] = useState("");
+  const [creatureInit, setCreatureInit] = useState("");
+  const [creatureHp, setCreatureHp] = useState("");
+  const [creatureAc, setCreatureAc] = useState("");
+  const [creatureCr, setCreatureCr] = useState("");
+  const [creatureCount, setCreatureCount] = useState("1");
+  const [addingCreature, setAddingCreature] = useState(false);
+
+  // Open5e search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<CreatureSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedCreature, setSelectedCreature] =
+    useState<CreatureSearchResult | null>(null);
+
+  // Debounced search
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (manualMode || selectedCreature || q.length < 2) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const handle = setTimeout(async () => {
+      try {
+        const results = await searchCreatures(q);
+        setSearchResults(results);
+      } finally {
+        setSearching(false);
+      }
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [searchQuery, manualMode, selectedCreature]);
+
   const alreadyJoined =
     playerName != null &&
     entries.some((e) => !e.isCreature && e.name === playerName);
@@ -43,6 +82,59 @@ export function InitiativeTracker({
     await addInitiativeEntry(playerName, value, false);
     setInitiative("");
     setAdding(false);
+  }
+
+  async function handleAddCreature() {
+    const init = parseInt(creatureInit, 10);
+    if (isNaN(init)) return;
+    const count = Math.max(1, parseInt(creatureCount, 10) || 1);
+
+    let name: string;
+    let stats: { hp?: number; ac?: number; cr?: number } | undefined;
+
+    if (selectedCreature) {
+      name = selectedCreature.name;
+      stats = {
+        hp: selectedCreature.hitPoints,
+        ac: selectedCreature.armorClass,
+        cr: selectedCreature.challengeRating,
+      };
+    } else {
+      name = creatureName.trim();
+      if (!name) return;
+      const hp =
+        creatureHp.trim() === "" ? undefined : parseInt(creatureHp, 10);
+      const ac =
+        creatureAc.trim() === "" ? undefined : parseInt(creatureAc, 10);
+      const cr =
+        creatureCr.trim() === "" ? undefined : parseFloat(creatureCr);
+      stats =
+        hp !== undefined || ac !== undefined || cr !== undefined
+          ? { hp, ac, cr }
+          : undefined;
+    }
+
+    setAddingCreature(true);
+    try {
+      await Promise.all(
+        Array.from({ length: count }, (_, i) => {
+          const label = count > 1 ? `${name} ${i + 1}` : name;
+          return addInitiativeEntry(label, init, true, stats);
+        })
+      );
+      // Reset everything for the next add
+      setCreatureName("");
+      setCreatureInit("");
+      setCreatureHp("");
+      setCreatureAc("");
+      setCreatureCr("");
+      setCreatureCount("1");
+      setSelectedCreature(null);
+      setSearchQuery("");
+      setSearchResults([]);
+    } finally {
+      setAddingCreature(false);
+    }
   }
 
   return (
@@ -157,6 +249,282 @@ export function InitiativeTracker({
         <p style={{ color: "#4ade80", fontSize: 13, marginBottom: 24 }}>
           You're in the turn order.
         </p>
+      )}
+
+      {/* Admin add-creature form */}
+      {isAdmin && (
+        <div
+          style={{
+            background: "#1e1e36",
+            border: "1px solid #2e2e4a",
+            borderRadius: 6,
+            padding: 12,
+            marginBottom: 24,
+            position: "relative",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 8,
+              gap: 8,
+            }}
+          >
+            <span
+              style={{
+                color: "#a78bfa",
+                fontSize: 12,
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Admin: Add Creature
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setManualMode((m) => !m);
+                setSelectedCreature(null);
+                setSearchQuery("");
+                setSearchResults([]);
+              }}
+              style={{
+                background: "transparent",
+                color: "#9ca3af",
+                border: "1px solid #2e2e4a",
+                borderRadius: 4,
+                padding: "2px 8px",
+                fontSize: 11,
+                cursor: "pointer",
+              }}
+            >
+              {manualMode ? "Search SRD" : "Custom creature"}
+            </button>
+          </div>
+
+          {!manualMode && !selectedCreature && (
+            <div style={{ position: "relative" }}>
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search SRD creatures (e.g. mastiff, mountain lion)"
+                style={creatureInputStyle}
+                autoFocus
+              />
+              {searching && (
+                <span
+                  style={{
+                    position: "absolute",
+                    right: 10,
+                    top: 8,
+                    fontSize: 11,
+                    color: "#6b7280",
+                  }}
+                >
+                  searching...
+                </span>
+              )}
+              {searchResults.length > 0 && (
+                <div
+                  style={{
+                    marginTop: 4,
+                    background: "#12121f",
+                    border: "1px solid #2e2e4a",
+                    borderRadius: 4,
+                    maxHeight: 240,
+                    overflowY: "auto",
+                  }}
+                >
+                  {searchResults.map((c) => (
+                    <button
+                      key={c.index}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCreature(c);
+                        setSearchResults([]);
+                      }}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        textAlign: "left",
+                        background: "transparent",
+                        border: "none",
+                        borderBottom: "1px solid #1e1e36",
+                        color: "#e8e8f0",
+                        padding: "6px 10px",
+                        fontSize: 13,
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "#1e1e36")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
+                    >
+                      <span style={{ fontWeight: 600 }}>{c.name}</span>
+                      <span style={{ color: "#9ca3af", marginLeft: 8, fontSize: 11 }}>
+                        CR {formatCr(c.challengeRating)} &middot; {c.hitPoints} HP &middot; AC {c.armorClass}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!searching && searchQuery.trim().length >= 2 && searchResults.length === 0 && (
+                <p style={{ color: "#6b7280", fontSize: 12, margin: "6px 0 0" }}>
+                  No matches in the SRD. Try "Custom creature" for homebrew.
+                </p>
+              )}
+            </div>
+          )}
+
+          {!manualMode && selectedCreature && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                background: "#12121f",
+                border: "1px solid #3730a3",
+                borderRadius: 4,
+                padding: "6px 10px",
+                marginBottom: 8,
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <span style={{ fontWeight: 600, color: "#e8e8f0", fontSize: 13 }}>
+                  {selectedCreature.name}
+                </span>
+                <span style={{ color: "#9ca3af", marginLeft: 8, fontSize: 11 }}>
+                  CR {formatCr(selectedCreature.challengeRating)} &middot;{" "}
+                  {selectedCreature.hitPoints} HP &middot; AC {selectedCreature.armorClass}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedCreature(null)}
+                title="Clear selection"
+                style={{
+                  background: "transparent",
+                  border: "1px solid #2e2e4a",
+                  color: "#9ca3af",
+                  borderRadius: 4,
+                  padding: "2px 8px",
+                  fontSize: 11,
+                  cursor: "pointer",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {manualMode && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "2fr 1fr 1fr 1fr",
+                gap: 6,
+                marginBottom: 8,
+              }}
+            >
+              <input
+                value={creatureName}
+                onChange={(e) => setCreatureName(e.target.value)}
+                placeholder="Name"
+                style={creatureInputStyle}
+              />
+              <input
+                type="number"
+                value={creatureHp}
+                onChange={(e) => setCreatureHp(e.target.value)}
+                placeholder="HP"
+                style={creatureInputStyle}
+              />
+              <input
+                type="number"
+                value={creatureAc}
+                onChange={(e) => setCreatureAc(e.target.value)}
+                placeholder="AC"
+                style={creatureInputStyle}
+              />
+              <input
+                type="number"
+                step="0.125"
+                value={creatureCr}
+                onChange={(e) => setCreatureCr(e.target.value)}
+                placeholder="CR"
+                style={creatureInputStyle}
+              />
+            </div>
+          )}
+
+          {/* Init + count + Add */}
+          {(selectedCreature || manualMode) && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr auto",
+                gap: 6,
+                alignItems: "center",
+              }}
+            >
+              <input
+                type="number"
+                value={creatureInit}
+                onChange={(e) => setCreatureInit(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddCreature()}
+                placeholder="Initiative roll"
+                style={creatureInputStyle}
+                autoFocus={selectedCreature != null}
+              />
+              <input
+                type="number"
+                min={1}
+                value={creatureCount}
+                onChange={(e) => setCreatureCount(e.target.value)}
+                title="How many copies to add"
+                placeholder="Count"
+                style={creatureInputStyle}
+              />
+              <button
+                disabled={
+                  addingCreature ||
+                  creatureInit.trim() === "" ||
+                  (manualMode && !creatureName.trim())
+                }
+                onClick={handleAddCreature}
+                style={{
+                  background: addingCreature ? "#3730a3" : "#6366f1",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 4,
+                  padding: "6px 14px",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor:
+                    addingCreature ||
+                    creatureInit.trim() === "" ||
+                    (manualMode && !creatureName.trim())
+                      ? "not-allowed"
+                      : "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {addingCreature ? "Adding..." : "Add"}
+              </button>
+            </div>
+          )}
+
+          <p style={{ fontSize: 11, color: "#6b7280", margin: "6px 0 0" }}>
+            Count &gt; 1 adds numbered copies (e.g. "Mastiff 1", "Mastiff 2").
+            {!manualMode &&
+              " SRD search — switch to Custom creature for homebrew."}
+          </p>
+        </div>
       )}
 
       {/* Turn order */}
@@ -377,3 +745,15 @@ function InitiativeRow({
     </div>
   );
 }
+
+const creatureInputStyle: React.CSSProperties = {
+  width: "100%",
+  background: "#12121f",
+  border: "1px solid #2e2e4a",
+  borderRadius: 4,
+  padding: "5px 8px",
+  color: "#e8e8f0",
+  fontSize: 13,
+  outline: "none",
+  boxSizing: "border-box",
+};

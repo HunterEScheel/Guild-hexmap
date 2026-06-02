@@ -92,6 +92,58 @@ function toCreature(m: Open5eV2Creature): Creature {
   };
 }
 
+export interface CreatureSearchResult {
+  index: string;
+  name: string;
+  size: string;
+  type: string;
+  challengeRating: number;
+  hitPoints: number;
+  armorClass: number;
+}
+
+const searchCache = new Map<string, CreatureSearchResult[]>();
+
+/**
+ * Free-text search across the Open5e v2 SRD 2024 creature index. Returns up
+ * to ~20 deduped matches with the stats we care about for the initiative
+ * tracker. Returns [] for queries shorter than 2 chars.
+ */
+export async function searchCreatures(
+  query: string
+): Promise<CreatureSearchResult[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  const cacheKey = q.toLowerCase();
+  if (searchCache.has(cacheKey)) return searchCache.get(cacheKey)!;
+
+  const url =
+    `${OPEN5E_BASE}/creatures/?format=json&limit=20` +
+    `&fields=${FIELDS}${DOCUMENT_FILTER}` +
+    `&name__icontains=${encodeURIComponent(q)}`;
+
+  const res = await fetch(url);
+  const data = (await res.json()) as { results?: Open5eV2Creature[] };
+
+  const seen = new Set<string>();
+  const out: CreatureSearchResult[] = [];
+  for (const m of data.results ?? []) {
+    if (seen.has(m.name)) continue;
+    seen.add(m.name);
+    out.push({
+      index: m.key,
+      name: m.name,
+      size: m.size?.name ?? "",
+      type: m.type?.name ?? "",
+      challengeRating: m.challenge_rating,
+      hitPoints: m.hit_points,
+      armorClass: m.armor_class,
+    });
+  }
+  searchCache.set(cacheKey, out);
+  return out;
+}
+
 // Builds a random encounter by fetching creatures from Open5e v2 within the
 // tier's CR cap, then filtering client-side to those with a matching environment.
 export async function generateEncounter(
