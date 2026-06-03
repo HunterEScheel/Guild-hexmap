@@ -37,6 +37,7 @@ const LANDMARKS: { key: Landmark; label: string }[] = [
   { key: "dungeon", label: "Dungeon" },
   { key: "ruins", label: "Ruins" },
   { key: "tower", label: "Tower" },
+  { key: "major_threat", label: "Major Threat" },
 ];
 
 interface LegendProps {

@@ -173,6 +173,83 @@ export function LandmarkIcon({
         </g>
       );
 
+    case "major_threat":
+      // Skull on a dark red disc — universal "here be dragons".
+      return (
+        <g transform={`translate(${cx},${cy})`} pointerEvents="none">
+          {/* Threat halo */}
+          <circle
+            cx={0}
+            cy={0}
+            r={s * 0.95}
+            fill="#7f1d1d"
+            stroke="#1a1a2e"
+            strokeWidth={1}
+          />
+          {/* Cranium */}
+          <path
+            d={`M ${-s * 0.55},${-s * 0.1}
+                Q ${-s * 0.55},${-s * 0.7} 0,${-s * 0.7}
+                Q ${s * 0.55},${-s * 0.7} ${s * 0.55},${-s * 0.1}
+                Q ${s * 0.55},${s * 0.2} ${s * 0.3},${s * 0.25}
+                L ${s * 0.3},${s * 0.45}
+                L ${-s * 0.3},${s * 0.45}
+                L ${-s * 0.3},${s * 0.25}
+                Q ${-s * 0.55},${s * 0.2} ${-s * 0.55},${-s * 0.1} Z`}
+            fill="#f3f4f6"
+            stroke="#1a1a2e"
+            strokeWidth={1}
+            strokeLinejoin="round"
+          />
+          {/* Left eye socket */}
+          <ellipse
+            cx={-s * 0.22}
+            cy={-s * 0.2}
+            rx={s * 0.17}
+            ry={s * 0.18}
+            fill="#0a0a0a"
+          />
+          {/* Right eye socket */}
+          <ellipse
+            cx={s * 0.22}
+            cy={-s * 0.2}
+            rx={s * 0.17}
+            ry={s * 0.18}
+            fill="#0a0a0a"
+          />
+          {/* Nose */}
+          <path
+            d={`M 0,${-s * 0.02} L ${-s * 0.07},${s * 0.15} L ${s * 0.07},${s * 0.15} Z`}
+            fill="#0a0a0a"
+          />
+          {/* Teeth */}
+          <line
+            x1={-s * 0.18}
+            y1={s * 0.27}
+            x2={-s * 0.18}
+            y2={s * 0.45}
+            stroke="#1a1a2e"
+            strokeWidth={1}
+          />
+          <line
+            x1={0}
+            y1={s * 0.27}
+            x2={0}
+            y2={s * 0.45}
+            stroke="#1a1a2e"
+            strokeWidth={1}
+          />
+          <line
+            x1={s * 0.18}
+            y1={s * 0.27}
+            x2={s * 0.18}
+            y2={s * 0.45}
+            stroke="#1a1a2e"
+            strokeWidth={1}
+          />
+        </g>
+      );
+
     default:
       return null;
   }

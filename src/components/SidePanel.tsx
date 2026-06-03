@@ -52,6 +52,7 @@ export function SidePanel({
     dungeon: "Dungeon",
     ruins: "Ruins",
     tower: "Tower",
+    major_threat: "Major Threat",
   };
   const hexQuests = selectedHex
     ? quests.filter(

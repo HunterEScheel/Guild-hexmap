@@ -23,7 +23,12 @@ export type QuestStatus = "available" | "in_progress" | "completed";
 
 export type ChallengeTier = 0 | 1 | 2 | 3 | 4;
 
-export type Landmark = "dungeon" | "village" | "ruins" | "tower";
+export type Landmark =
+  | "dungeon"
+  | "village"
+  | "ruins"
+  | "tower"
+  | "major_threat";
 
 export interface HexData {
   col: number;

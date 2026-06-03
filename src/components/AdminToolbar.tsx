@@ -28,6 +28,7 @@ const LANDMARKS: { landmark: Landmark; label: string }[] = [
   { landmark: "dungeon", label: "Dungeon" },
   { landmark: "ruins", label: "Ruins" },
   { landmark: "tower", label: "Tower" },
+  { landmark: "major_threat", label: "Major Threat" },
 ];
 
 interface AdminToolbarProps {
