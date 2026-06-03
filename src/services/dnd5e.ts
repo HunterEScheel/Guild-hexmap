@@ -14,7 +14,6 @@ const TERRAIN_ENV_KEYS: Partial<Record<TerrainType, string[]>> = {
   desert: ["desert"],
   snow: ["arctic"],
   water: ["ocean", "lake", "coast"],
-  unallied_city: ["urban", "ruins"],
 };
 
 interface Open5eV2Creature {

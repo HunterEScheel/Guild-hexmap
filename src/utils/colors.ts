@@ -8,8 +8,6 @@ export const TERRAIN_COLORS: Record<TerrainType, string> = {
   desert: "#d4a46a",
   snow: "#e8e8f0",
   water: "#3a7bd5",
-  allied_city: "#d4a017",
-  unallied_city: "#1a1a1a",
   unknown: "#555555",
 };
 
@@ -41,7 +39,5 @@ export const TERRAIN_LABELS: Record<TerrainType, string> = {
   desert: "Desert",
   snow: "Snow",
   water: "Water",
-  allied_city: "Allied City",
-  unallied_city: "Unallied City",
   unknown: "Unknown",
 };

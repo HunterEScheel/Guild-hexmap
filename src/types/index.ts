@@ -6,8 +6,6 @@ export type TerrainType =
   | "desert"
   | "snow"
   | "water"
-  | "allied_city"
-  | "unallied_city"
   | "unknown";
 
 export type QuestLevel =
@@ -28,7 +26,9 @@ export type Landmark =
   | "village"
   | "ruins"
   | "tower"
-  | "major_threat";
+  | "major_threat"
+  | "allied_city"
+  | "unallied_city";
 
 export interface HexData {
   col: number;

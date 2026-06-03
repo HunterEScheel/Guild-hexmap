@@ -45,10 +45,12 @@ export function SidePanel({
   const terrain = hexData?.terrain ?? "unknown";
   const challengeTier = hexData?.challengeTier ?? null;
   const landmark = hexData?.landmark ?? null;
-  const canHaveEncounters = terrain !== "allied_city" && terrain !== "unknown";
+  const canHaveEncounters = terrain !== "unknown" && landmark !== "allied_city";
 
   const LANDMARK_LABELS: Record<string, string> = {
     village: "Village",
+    allied_city: "Allied City",
+    unallied_city: "Unallied City",
     dungeon: "Dungeon",
     ruins: "Ruins",
     tower: "Tower",

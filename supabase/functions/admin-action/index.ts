@@ -43,12 +43,18 @@ const VALID_TERRAINS = [
   "desert",
   "snow",
   "water",
-  "allied_city",
-  "unallied_city",
   "unknown",
 ];
 
-const VALID_LANDMARKS = ["dungeon", "village", "ruins", "tower", "major_threat"];
+const VALID_LANDMARKS = [
+  "dungeon",
+  "village",
+  "ruins",
+  "tower",
+  "major_threat",
+  "allied_city",
+  "unallied_city",
+];
 
 const VALID_QUEST_LEVELS = [
   "explore",

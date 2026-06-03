@@ -173,6 +173,102 @@ export function LandmarkIcon({
         </g>
       );
 
+    case "allied_city":
+    case "unallied_city": {
+      // Walled city: stone walls + two square towers, banner on the keep.
+      // Allied = gold banner on cream stone; unallied = crimson banner on dark stone.
+      const allied = landmark === "allied_city";
+      const stoneFill = allied ? "#fde68a" : "#4b5563";
+      const stoneStroke = "#1a1a2e";
+      const bannerFill = allied ? "#d4a017" : "#7f1d1d";
+      const trimFill = allied ? "#92400e" : "#0a0a0a";
+      return (
+        <g transform={`translate(${cx},${cy})`} pointerEvents="none">
+          {/* Main wall body */}
+          <rect
+            x={-s * 0.8}
+            y={-s * 0.25}
+            width={s * 1.6}
+            height={s * 0.85}
+            fill={stoneFill}
+            stroke={stoneStroke}
+            strokeWidth={1}
+          />
+          {/* Left tower */}
+          <rect
+            x={-s * 0.85}
+            y={-s * 0.55}
+            width={s * 0.35}
+            height={s * 1.15}
+            fill={stoneFill}
+            stroke={stoneStroke}
+            strokeWidth={1}
+          />
+          {/* Right tower */}
+          <rect
+            x={s * 0.5}
+            y={-s * 0.55}
+            width={s * 0.35}
+            height={s * 1.15}
+            fill={stoneFill}
+            stroke={stoneStroke}
+            strokeWidth={1}
+          />
+          {/* Central keep (taller than walls) */}
+          <rect
+            x={-s * 0.2}
+            y={-s * 0.7}
+            width={s * 0.4}
+            height={s * 0.5}
+            fill={stoneFill}
+            stroke={stoneStroke}
+            strokeWidth={1}
+          />
+          {/* Battlements: 3 merlons across the front wall */}
+          <path
+            d={`M ${-s * 0.5},${-s * 0.25}
+                L ${-s * 0.5},${-s * 0.4}
+                L ${-s * 0.3},${-s * 0.4}
+                L ${-s * 0.3},${-s * 0.28}
+                L ${-s * 0.1},${-s * 0.28}
+                L ${-s * 0.1},${-s * 0.4}
+                L ${s * 0.1},${-s * 0.4}
+                L ${s * 0.1},${-s * 0.28}
+                L ${s * 0.3},${-s * 0.28}
+                L ${s * 0.3},${-s * 0.4}
+                L ${s * 0.5},${-s * 0.4}
+                L ${s * 0.5},${-s * 0.25} Z`}
+            fill={stoneFill}
+            stroke={stoneStroke}
+            strokeWidth={1}
+          />
+          {/* Banner pole + flag on the central keep */}
+          <line
+            x1={0}
+            y1={-s * 0.7}
+            x2={0}
+            y2={-s * 1.05}
+            stroke={trimFill}
+            strokeWidth={1}
+          />
+          <path
+            d={`M 0,${-s * 1.05} L ${s * 0.3},${-s * 0.95} L 0,${-s * 0.85} Z`}
+            fill={bannerFill}
+            stroke={stoneStroke}
+            strokeWidth={0.5}
+          />
+          {/* Gate */}
+          <path
+            d={`M ${-s * 0.1},${s * 0.6}
+                L ${-s * 0.1},${s * 0.3}
+                A ${s * 0.1},${s * 0.1} 0 0,1 ${s * 0.1},${s * 0.3}
+                L ${s * 0.1},${s * 0.6} Z`}
+            fill={trimFill}
+          />
+        </g>
+      );
+    }
+
     case "major_threat":
       // Skull on a dark red disc — universal "here be dragons".
       return (

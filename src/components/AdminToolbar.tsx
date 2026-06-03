@@ -11,8 +11,6 @@ const TERRAIN_TYPES: TerrainType[] = [
   "desert",
   "snow",
   "water",
-  "allied_city",
-  "unallied_city",
 ];
 
 const TIER_CONFIG: { tier: ChallengeTier; label: string; color: string }[] = [
@@ -25,6 +23,8 @@ const TIER_CONFIG: { tier: ChallengeTier; label: string; color: string }[] = [
 
 const LANDMARKS: { landmark: Landmark; label: string }[] = [
   { landmark: "village", label: "Village" },
+  { landmark: "allied_city", label: "Allied City" },
+  { landmark: "unallied_city", label: "Unallied City" },
   { landmark: "dungeon", label: "Dungeon" },
   { landmark: "ruins", label: "Ruins" },
   { landmark: "tower", label: "Tower" },

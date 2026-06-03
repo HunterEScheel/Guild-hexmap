@@ -17,8 +17,6 @@ const TERRAIN_TYPES: TerrainType[] = [
   "desert",
   "snow",
   "water",
-  "allied_city",
-  "unallied_city",
   "unknown",
 ];
 
@@ -34,6 +32,8 @@ const QUEST_LEVELS: QuestLevel[] = [
 
 const LANDMARKS: { key: Landmark; label: string }[] = [
   { key: "village", label: "Village" },
+  { key: "allied_city", label: "Allied City" },
+  { key: "unallied_city", label: "Unallied City" },
   { key: "dungeon", label: "Dungeon" },
   { key: "ruins", label: "Ruins" },
   { key: "tower", label: "Tower" },
