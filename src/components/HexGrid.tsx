@@ -253,6 +253,7 @@ export function HexGrid({
 
   const fills: React.ReactNode[] = [];
   const landmarks: React.ReactNode[] = [];
+  const landmarkNames: React.ReactNode[] = [];
   const selectionOverlays: React.ReactNode[] = [];
   const eraseHighlights: React.ReactNode[] = [];
 
@@ -281,6 +282,47 @@ export function HexGrid({
           landmark={hexData.landmark}
         />
       );
+
+      if (hexData.landmarkName) {
+        const center = hexToPixel(col, row);
+        // Label sits just below the landmark icon.
+        const labelY = center.y + HEX_SIZE * 0.78;
+        const fontSize = HEX_SIZE * 0.32;
+        landmarkNames.push(
+          <g
+            key={`lname-${key}`}
+            pointerEvents="none"
+            style={{ fontFamily: "'Cinzel', serif" }}
+          >
+            {/* Dark stroke outline for legibility on any terrain */}
+            <text
+              x={center.x}
+              y={labelY}
+              textAnchor="middle"
+              fontSize={fontSize}
+              fontWeight={600}
+              fill="#0a0a0a"
+              stroke="#0a0a0a"
+              strokeWidth={3}
+              paintOrder="stroke"
+              strokeLinejoin="round"
+            >
+              {hexData.landmarkName}
+            </text>
+            {/* Foreground text */}
+            <text
+              x={center.x}
+              y={labelY}
+              textAnchor="middle"
+              fontSize={fontSize}
+              fontWeight={600}
+              fill="#fde68a"
+            >
+              {hexData.landmarkName}
+            </text>
+          </g>
+        );
+      }
     }
 
     if (isSelected) {
@@ -367,6 +409,7 @@ export function HexGrid({
       >
         <g>{fills}</g>
         <g>{landmarks}</g>
+        <g>{landmarkNames}</g>
         <g>{eraseHighlights}</g>
         <g>{selectionOverlays}</g>
         <g>

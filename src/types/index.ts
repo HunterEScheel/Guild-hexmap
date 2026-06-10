@@ -36,6 +36,7 @@ export interface HexData {
   terrain: TerrainType;
   challengeTier: ChallengeTier | null;
   landmark: Landmark | null;
+  landmarkName: string | null;
 }
 
 export interface InitiativeEntry {

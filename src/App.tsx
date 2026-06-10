@@ -419,6 +419,7 @@ function App() {
             quests={quests}
             playerName={playerName}
             isAdmin={isAdmin}
+            adminPin={adminPin}
             onJoinQuest={handleJoinQuest}
             onLeaveQuest={handleLeaveQuest}
             onEditQuest={handleEditQuest}

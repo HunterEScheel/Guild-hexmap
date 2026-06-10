@@ -29,6 +29,7 @@ export function useHexData(): Map<string, HexData> {
               terrain: row.terrain as TerrainType,
               challengeTier: (row.challenge_tier as ChallengeTier) ?? null,
               landmark: (row.landmark as Landmark) ?? null,
+              landmarkName: (row.landmark_name as string) ?? null,
             });
           }
           setHexes(map);
@@ -54,6 +55,7 @@ export function useHexData(): Map<string, HexData> {
                 terrain: string;
                 challenge_tier: number | null;
                 landmark: string | null;
+                landmark_name: string | null;
               };
               next.set(`${row.col}_${row.row}`, {
                 col: row.col,
@@ -188,6 +190,15 @@ export async function setHexLandmark(
   landmark: Landmark | null
 ): Promise<void> {
   await callAdminAction(pin, "set_hex_landmark", { col, row, landmark });
+}
+
+export async function setHexLandmarkName(
+  pin: string,
+  col: number,
+  row: number,
+  name: string | null
+): Promise<void> {
+  await callAdminAction(pin, "set_hex_landmark_name", { col, row, name });
 }
 
 export async function createQuest(

@@ -209,6 +209,25 @@ Deno.serve(async (req) => {
         return ok();
       }
 
+      case "set_hex_landmark_name": {
+        const col = Number(payload.col);
+        const row = Number(payload.row);
+        const nameRaw = payload.name;
+        const name =
+          nameRaw == null || (typeof nameRaw === "string" && nameRaw.trim() === "")
+            ? null
+            : String(nameRaw).trim().slice(0, 80);
+        if (!Number.isFinite(col) || !Number.isFinite(row)) {
+          return badRequest("col/row must be numbers");
+        }
+        const { error } = await supa.from("hexes").upsert(
+          { col, row, landmark_name: name },
+          { onConflict: "col,row" }
+        );
+        if (error) return serverError(error.message);
+        return ok();
+      }
+
       // -------- Quests --------
       case "create_quest": {
         const q = payload;

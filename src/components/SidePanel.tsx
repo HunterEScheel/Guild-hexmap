@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TERRAIN_COLORS, TERRAIN_LABELS } from "../utils/colors";
 import { QuestCard } from "./QuestCard";
 import { TIER_LABELS, TIER_XP_RANGE, formatCr } from "../data/bestiary";
 import type { GeneratedEncounter } from "../data/bestiary";
 import { generateEncounter } from "../services/dnd5e";
+import { setHexLandmarkName } from "../hooks/useFirebase";
 import type { ChallengeTier, HexData, Quest } from "../types";
 
 interface SidePanelProps {
@@ -12,6 +13,7 @@ interface SidePanelProps {
   quests: Quest[];
   playerName: string | null;
   isAdmin: boolean;
+  adminPin: string | null;
   onJoinQuest: (questId: string) => void;
   onLeaveQuest: (questId: string) => void;
   onEditQuest: (quest: Quest) => void;
@@ -29,6 +31,7 @@ export function SidePanel({
   quests,
   playerName,
   isAdmin,
+  adminPin,
   onJoinQuest,
   onLeaveQuest,
   onEditQuest,
@@ -45,7 +48,27 @@ export function SidePanel({
   const terrain = hexData?.terrain ?? "unknown";
   const challengeTier = hexData?.challengeTier ?? null;
   const landmark = hexData?.landmark ?? null;
+  const landmarkName = hexData?.landmarkName ?? null;
   const canHaveEncounters = terrain !== "unknown" && landmark !== "allied_city";
+
+  // Local draft of the landmark name so the input stays editable until blur.
+  const [nameDraft, setNameDraft] = useState<string>(landmarkName ?? "");
+  useEffect(() => {
+    setNameDraft(landmarkName ?? "");
+  }, [selectedHex?.col, selectedHex?.row, landmarkName]);
+
+  function commitName() {
+    if (!isAdmin || !adminPin || !selectedHex) return;
+    const next = nameDraft.trim();
+    const current = landmarkName ?? "";
+    if (next === current) return;
+    setHexLandmarkName(adminPin, selectedHex.col, selectedHex.row, next || null).catch(
+      (err) => {
+        console.error("setHexLandmarkName failed:", err);
+        alert(`Admin write rejected: ${err.message}`);
+      }
+    );
+  }
 
   const LANDMARK_LABELS: Record<string, string> = {
     village: "Village",
@@ -147,8 +170,51 @@ export function SidePanel({
               <span style={{ fontSize: 14 }}>{TERRAIN_LABELS[terrain]}</span>
             </div>
             {landmark && (
-              <div style={{ marginTop: 6, fontSize: 13, color: "#a78bfa" }}>
-                Landmark: {LANDMARK_LABELS[landmark] ?? landmark}
+              <div style={{ marginTop: 6 }}>
+                <div style={{ fontSize: 13, color: "#a78bfa" }}>
+                  Landmark: {LANDMARK_LABELS[landmark] ?? landmark}
+                </div>
+                {isAdmin ? (
+                  <input
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    onBlur={commitName}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        commitName();
+                        (e.target as HTMLInputElement).blur();
+                      }
+                    }}
+                    placeholder="Name this landmark (e.g. Holdfast)"
+                    maxLength={80}
+                    style={{
+                      width: "100%",
+                      marginTop: 4,
+                      background: "#12121f",
+                      border: "1px solid #2e2e4a",
+                      borderRadius: 4,
+                      padding: "5px 8px",
+                      color: "#fde68a",
+                      fontFamily: "'Cinzel', serif",
+                      fontSize: 13,
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                ) : (
+                  landmarkName && (
+                    <div
+                      style={{
+                        marginTop: 2,
+                        fontFamily: "'Cinzel', serif",
+                        fontSize: 14,
+                        color: "#fde68a",
+                      }}
+                    >
+                      {landmarkName}
+                    </div>
+                  )
+                )}
               </div>
             )}
           </div>
