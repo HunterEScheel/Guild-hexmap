@@ -63,6 +63,7 @@ export function useHexData(): Map<string, HexData> {
                 terrain: row.terrain as TerrainType,
                 challengeTier: (row.challenge_tier as ChallengeTier) ?? null,
                 landmark: (row.landmark as Landmark) ?? null,
+                landmarkName: (row.landmark_name as string) ?? null,
               });
             }
             return next;
