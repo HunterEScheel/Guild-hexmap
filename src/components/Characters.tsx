@@ -49,7 +49,6 @@ export function Characters() {
                 <p>
                     This campaign uses <strong>standard 5e XP thresholds</strong> for leveling. XP is earned from completing quests and encounters.
                 </p>
-                <XPTable />
             </Section>
 
             <Section title="Downtime">
@@ -104,69 +103,3 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     );
 }
 
-function XPTable() {
-    const levels: [number, string, string][] = [
-        [1, "0", "+2"],
-        [2, "300", "+2"],
-        [3, "900", "+2"],
-        [4, "2,700", "+2"],
-        [5, "6,500", "+3"],
-        [6, "14,000", "+3"],
-        [7, "23,000", "+3"],
-        [8, "34,000", "+3"],
-        [9, "48,000", "+4"],
-        [10, "64,000", "+4"],
-        [11, "85,000", "+4"],
-        [12, "100,000", "+4"],
-        [13, "120,000", "+5"],
-        [14, "140,000", "+5"],
-        [15, "165,000", "+5"],
-        [16, "195,000", "+5"],
-        [17, "225,000", "+6"],
-        [18, "265,000", "+6"],
-        [19, "305,000", "+6"],
-        [20, "355,000", "+6"],
-    ];
-
-    return (
-        <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                <thead>
-                    <tr>
-                        {["Level", "XP Required", "Proficiency Bonus"].map((h) => (
-                            <th key={h} style={thStyle}>
-                                {h}
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
-                    {levels.map(([level, xp, prof]) => (
-                        <tr key={level}>
-                            <td style={{ ...tdStyle, color: "#e8e8f0", fontWeight: 600 }}>{level}</td>
-                            <td style={{ ...tdStyle, color: "#fbbf24" }}>{xp}</td>
-                            <td style={tdStyle}>{prof}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-}
-
-const thStyle: React.CSSProperties = {
-    textAlign: "left",
-    padding: "8px 12px",
-    borderBottom: "2px solid #2e2e4a",
-    color: "#9ca3af",
-    fontWeight: 600,
-    fontSize: 12,
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-};
-
-const tdStyle: React.CSSProperties = {
-    padding: "8px 12px",
-    borderBottom: "1px solid #1e1e36",
-    color: "#d1d5db",
-};
