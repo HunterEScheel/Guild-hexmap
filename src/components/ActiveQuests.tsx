@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { QuestCard } from "./QuestCard";
 import { QuestFindings } from "./QuestFindings";
 import type { HexData, Quest, QuestFinding } from "../types";
@@ -30,6 +30,7 @@ export function ActiveQuests({
   onDeleteQuest,
   onSetPlayerName,
 }: ActiveQuestsProps) {
+  const [showCompleted, setShowCompleted] = useState(false);
   const { inProgress, recruiting, completed } = useMemo(() => {
     const inProgress: Quest[] = [];
     const recruiting: Quest[] = [];
@@ -48,7 +49,6 @@ export function ActiveQuests({
     return { inProgress, recruiting, completed };
   }, [quests]);
 
-  const totalActive = inProgress.length + recruiting.length + completed.length;
 
   return (
     <div
@@ -74,11 +74,11 @@ export function ActiveQuests({
         Quests that adventurers have signed up for or are underway.
       </p>
 
-      {totalActive === 0 ? (
+      {inProgress.length === 0 && recruiting.length === 0 && (
         <div
           style={{
             textAlign: "center",
-            padding: "60px 20px",
+            padding: "40px 20px",
             color: "#6b7280",
           }}
         >
@@ -87,7 +87,9 @@ export function ActiveQuests({
             Visit the map and join a quest to see it here.
           </p>
         </div>
-      ) : (
+      )}
+
+      {(inProgress.length > 0 || recruiting.length > 0 || showCompleted) && (
         <>
           <QuestSection
             title="In Progress"
@@ -111,6 +113,35 @@ export function ActiveQuests({
             onDelete={onDeleteQuest}
             accentColor="#60a5fa"
           />
+        </>
+      )}
+
+      {completed.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <button
+            onClick={() => setShowCompleted((v) => !v)}
+            style={{
+              background: "transparent",
+              border: "1px solid #2e2e4a",
+              color: "#9ca3af",
+              borderRadius: 6,
+              padding: "8px 14px",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              width: "100%",
+              marginBottom: 16,
+            }}
+          >
+            {showCompleted
+              ? `Hide completed quests (${completed.length})`
+              : `Show completed quests (${completed.length})`}
+          </button>
+        </div>
+      )}
+
+      {showCompleted && completed.length > 0 && (
+        <>
           <QuestSection
             title="Completed"
             quests={completed}

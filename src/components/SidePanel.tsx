@@ -79,11 +79,18 @@ export function SidePanel({
     tower: "Tower",
     major_threat: "Major Threat",
   };
-  const hexQuests = selectedHex
+  const [showCompletedHexQuests, setShowCompletedHexQuests] = useState(false);
+  const allHexQuests = selectedHex
     ? quests.filter(
         (q) => q.hexCol === selectedHex.col && q.hexRow === selectedHex.row
       )
     : [];
+  const completedHexQuestCount = allHexQuests.filter(
+    (q) => q.status === "completed"
+  ).length;
+  const hexQuests = showCompletedHexQuests
+    ? allHexQuests
+    : allHexQuests.filter((q) => q.status !== "completed");
 
   return (
     <div
@@ -294,7 +301,7 @@ export function SidePanel({
               }}
             >
               <h3 style={{ margin: 0, fontSize: 14, color: "#9ca3af" }}>
-                Quests ({hexQuests.length})
+                Quests ({allHexQuests.length})
               </h3>
               {isAdmin && (
                 <button
@@ -317,7 +324,9 @@ export function SidePanel({
 
             {hexQuests.length === 0 ? (
               <p style={{ color: "#6b7280", fontSize: 13 }}>
-                No quests on this hex.
+                {showCompletedHexQuests || completedHexQuestCount === 0
+                  ? "No quests on this hex."
+                  : "No active quests on this hex."}
               </p>
             ) : (
               hexQuests.map((quest) => (
@@ -333,6 +342,27 @@ export function SidePanel({
                   compact
                 />
               ))
+            )}
+
+            {completedHexQuestCount > 0 && (
+              <button
+                onClick={() => setShowCompletedHexQuests((v) => !v)}
+                style={{
+                  background: "transparent",
+                  border: "1px solid #2e2e4a",
+                  color: "#9ca3af",
+                  borderRadius: 4,
+                  padding: "5px 10px",
+                  fontSize: 12,
+                  cursor: "pointer",
+                  marginTop: 8,
+                  width: "100%",
+                }}
+              >
+                {showCompletedHexQuests
+                  ? `Hide completed quests (${completedHexQuestCount})`
+                  : `Show completed quests (${completedHexQuestCount})`}
+              </button>
             )}
           </div>
         </>
