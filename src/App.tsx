@@ -45,9 +45,28 @@ type GuildSub =
   | "initiative";
 type AboutSub = "system" | "world" | "characters";
 
+// Read ?tab=<sub> on first load so Discord (or any other deep link) can
+// route the user straight to a specific page. Recognized values match
+// GuildSub keys.
+function initialGuildSubFromUrl(): GuildSub {
+  if (typeof window === "undefined") return "map";
+  const params = new URLSearchParams(window.location.search);
+  const tab = params.get("tab");
+  if (
+    tab === "map" ||
+    tab === "active-quests" ||
+    tab === "bounties" ||
+    tab === "shop" ||
+    tab === "initiative"
+  ) {
+    return tab;
+  }
+  return "map";
+}
+
 function App() {
   const [topPage, setTopPage] = useState<TopPage>("guild");
-  const [guildSub, setGuildSub] = useState<GuildSub>("map");
+  const [guildSub, setGuildSub] = useState<GuildSub>(initialGuildSubFromUrl);
   const [aboutSub, setAboutSub] = useState<AboutSub>("system");
   const hexes = useHexData();
   const quests = useQuests();

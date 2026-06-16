@@ -56,6 +56,8 @@ const LEVEL_COLOR: Record<string, number> = {
 
 const COMPLETED_COLOR = 0x4b5563; // muted gray
 
+const HEXMAP_URL = "https://scheels.quest/?tab=active-quests";
+
 function statusLabel(status: string): string {
   if (status === "in_progress") return "In Progress";
   if (status === "completed") return "Completed";
@@ -212,7 +214,55 @@ Deno.serve(async (req) => {
       });
     }
 
+    // If every player has left, retire the Discord post entirely so the
+    // channel doesn't accumulate empty-party messages.
+    if (hasMessage && players.length === 0) {
+      const delRes = await fetch(
+        `${webhookUrl}/messages/${encodeURIComponent(
+          quest.discord_message_id
+        )}`,
+        { method: "DELETE" }
+      );
+      // 204 = deleted, 404 = already gone. Both fine. Anything else: log and
+      // still clear our pointer so we don't get stuck.
+      if (!delRes.ok && delRes.status !== 404) {
+        const text = await delRes.text();
+        console.warn(`Discord DELETE ${delRes.status}: ${text}`);
+      }
+      const { error: clearErr } = await supa
+        .from("quests")
+        .update({ discord_message_id: null })
+        .eq("id", questId);
+      if (clearErr) {
+        return new Response(
+          JSON.stringify({
+            error: `Cleared Discord post but failed to update row: ${clearErr.message}`,
+          }),
+          { status: 500, headers: JSON_CORS }
+        );
+      }
+      return new Response(
+        JSON.stringify({ ok: true, deleted: true }),
+        { headers: JSON_CORS }
+      );
+    }
+
     const embed = buildEmbed(quest);
+
+    // Link button to the hexmap app's Active Quests board.
+    const components = [
+      {
+        type: 1, // Action row
+        components: [
+          {
+            type: 2, // Button
+            style: 5, // Link
+            label: "Active Quests Board",
+            url: HEXMAP_URL,
+          },
+        ],
+      },
+    ];
 
     if (hasMessage) {
       // PATCH the existing webhook message.
@@ -222,7 +272,7 @@ Deno.serve(async (req) => {
       const patchRes = await fetch(patchUrl, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ embeds: [embed] }),
+        body: JSON.stringify({ embeds: [embed], components }),
       });
       if (!patchRes.ok) {
         const text = await patchRes.text();
@@ -261,6 +311,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         username: "Hexmap",
         embeds: [embed],
+        components,
       }),
     });
     if (!postRes.ok) {
