@@ -92,6 +92,9 @@ on conflict (rarity) do nothing;
 -- alter table quests add column end_hex_col integer;
 -- alter table quests add column end_hex_row integer;
 
+-- Migration: Add Discord message id to quests
+-- alter table quests add column if not exists discord_message_id text;
+
 -- Quests table
 create table where not exists quests (
   id uuid default gen_random_uuid() primary key,

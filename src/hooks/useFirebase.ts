@@ -149,6 +149,24 @@ function mapQuest(row: Record<string, unknown>): Quest {
  * All hex writes go through the `admin-action` Edge Function. The browser
  * has no direct write access to the hexes table — RLS enforces that.
  */
+/**
+ * Fire-and-forget Discord sync for a quest. Errors are logged but never
+ * thrown — the Discord side is best-effort, the local DB write is the
+ * source of truth.
+ */
+function syncQuestToDiscord(questId: string): void {
+  supabase.functions
+    .invoke("discord-quest-sync", { body: { questId } })
+    .then(({ error }) => {
+      if (error) {
+        console.warn("discord-quest-sync failed:", error.message);
+      }
+    })
+    .catch((err) => {
+      console.warn("discord-quest-sync threw:", err);
+    });
+}
+
 export async function callAdminAction(
   pin: string,
   action: string,
@@ -207,6 +225,7 @@ export async function createQuest(
   quest: Omit<Quest, "id">
 ): Promise<void> {
   await callAdminAction(pin, "create_quest", { ...quest });
+  // No id to sync yet — Discord post happens on the first join.
 }
 
 export async function updateQuest(
@@ -215,9 +234,11 @@ export async function updateQuest(
   updates: Partial<Quest>
 ): Promise<void> {
   await callAdminAction(pin, "update_quest", { id, ...updates });
+  syncQuestToDiscord(id);
 }
 
 export async function deleteQuest(pin: string, id: string): Promise<void> {
+  // delete_quest action handles the Discord message deletion server-side.
   await callAdminAction(pin, "delete_quest", { id });
 }
 
@@ -232,6 +253,7 @@ export async function joinQuest(
     p_scheduled_date: scheduledDate ?? null,
   });
   if (error) throw new Error(`join_quest failed: ${error.message}`);
+  syncQuestToDiscord(questId);
 }
 
 export async function leaveQuest(
@@ -243,6 +265,7 @@ export async function leaveQuest(
     p_player_name: playerName,
   });
   if (error) throw new Error(`leave_quest failed: ${error.message}`);
+  syncQuestToDiscord(questId);
 }
 
 // --- Initiative Tracker ---

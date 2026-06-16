@@ -302,6 +302,30 @@ Deno.serve(async (req) => {
       case "delete_quest": {
         const id = String(payload.id ?? "");
         if (!id) return badRequest("quest id required");
+
+        // Best-effort: if there's a Discord message for this quest, delete
+        // it before removing the row (we lose the id after the delete).
+        const { data: existing } = await supa
+          .from("quests")
+          .select("discord_message_id")
+          .eq("id", id)
+          .maybeSingle();
+        const messageId =
+          existing && typeof existing.discord_message_id === "string"
+            ? existing.discord_message_id
+            : null;
+        const webhookUrl = Deno.env.get("DISCORD_WEBHOOK_URL");
+        if (messageId && webhookUrl) {
+          try {
+            await fetch(
+              `${webhookUrl}/messages/${encodeURIComponent(messageId)}`,
+              { method: "DELETE" }
+            );
+          } catch {
+            // Don't block the quest delete on Discord failures.
+          }
+        }
+
         const { error } = await supa.from("quests").delete().eq("id", id);
         if (error) return serverError(error.message);
         return ok();
