@@ -42,11 +42,11 @@ export interface GeneratedEncounter {
 
 // Total combat-point (XP) range a random encounter should fall within, per tier.
 export const TIER_XP_RANGE: Record<ChallengeTier, [number, number]> = {
-  0: [0, 200],
-  1: [100, 1000],
-  2: [800, 3000],
-  3: [2000, 7500],
-  4: [6000, 22000],
+  0: [0, 450],
+  1: [225, 5000],
+  2: [3500, 13000],
+  3: [9000, 30000],
+  4: [25000, 200000],
 };
 
 // An encounter holds 2-10 creatures across 1-3 distinct types. The number of

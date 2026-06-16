@@ -42,6 +42,11 @@ export function Characters() {
                         You are free to <strong>reflavor</strong> anything you like. Rename spells, reskin your weapon's appearance, give your race a custom
                         origin story — as long as the <strong>mechanics stay unchanged</strong>, the flavor is yours.
                     </li>
+                    <li>
+                        <strong>Flavor caveat — no gunpowder.</strong> The setting is pre-gunpowder, so firearms, cannons, and the like don't exist in-world.
+                        If you'd otherwise pick up a Musket or Pistol from a sourcebook, reflavor it as a crossbow, sling, blowgun, or other thrown/drawn weapon
+                        of equivalent stats.
+                    </li>
                 </ul>
             </Section>
 
