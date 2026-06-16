@@ -81,6 +81,15 @@ function buildEmbed(quest: any) {
       ? `(${quest.hex_col}, ${quest.hex_row}) → (${quest.end_hex_col}, ${quest.end_hex_row})`
       : `(${quest.hex_col}, ${quest.hex_row})`;
 
+  // Build description: existing quest description (if any), then a
+  // clickable link to the Active Quests board.
+  const descParts: string[] = [];
+  if (quest.description && String(quest.description).trim() !== "") {
+    descParts.push(String(quest.description));
+  }
+  descParts.push(`🔗 [Open Active Quests Board](${HEXMAP_URL})`);
+  const description = descParts.join("\n\n");
+
   const fields = [
     {
       name: "Difficulty",
@@ -121,10 +130,8 @@ function buildEmbed(quest: any) {
 
   return {
     title: isCompleted ? `~~${quest.title}~~` : quest.title,
-    description:
-      quest.description && String(quest.description).trim() !== ""
-        ? String(quest.description)
-        : undefined,
+    url: HEXMAP_URL,
+    description,
     color,
     fields,
     footer: { text: `Quest ${quest.id.slice(0, 8)}` },
@@ -249,21 +256,6 @@ Deno.serve(async (req) => {
 
     const embed = buildEmbed(quest);
 
-    // Link button to the hexmap app's Active Quests board.
-    const components = [
-      {
-        type: 1, // Action row
-        components: [
-          {
-            type: 2, // Button
-            style: 5, // Link
-            label: "Active Quests Board",
-            url: HEXMAP_URL,
-          },
-        ],
-      },
-    ];
-
     if (hasMessage) {
       // PATCH the existing webhook message.
       const patchUrl = `${webhookUrl}/messages/${encodeURIComponent(
@@ -272,7 +264,7 @@ Deno.serve(async (req) => {
       const patchRes = await fetch(patchUrl, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ embeds: [embed], components }),
+        body: JSON.stringify({ embeds: [embed] }),
       });
       if (!patchRes.ok) {
         const text = await patchRes.text();
@@ -311,7 +303,6 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         username: "Hexmap",
         embeds: [embed],
-        components,
       }),
     });
     if (!postRes.ok) {
