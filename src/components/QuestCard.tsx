@@ -142,10 +142,13 @@ export function QuestCard({
             <div style={{ marginBottom: 6 }}>
               <span style={{ fontSize: 11, color: "#6b7280" }}>Scheduled: </span>
               <span style={{ fontSize: 12, color: "#60a5fa" }}>
-                {new Date(quest.scheduledDate + "T00:00:00").toLocaleDateString(
-                  undefined,
-                  { weekday: "short", month: "short", day: "numeric" }
-                )}
+                {new Date(quest.scheduledDate).toLocaleString(undefined, {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
               </span>
             </div>
           )}

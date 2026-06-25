@@ -167,6 +167,30 @@ function syncQuestToDiscord(questId: string): void {
     });
 }
 
+/**
+ * Fire-and-forget Discord post to the "mission reports" channel.
+ * One message per finding submission.
+ */
+function postFindingToDiscord(payload: {
+  author: string;
+  questTitle: string;
+  questLevel: string;
+  hexCol: number;
+  hexRow: number;
+  description: string;
+}): void {
+  supabase.functions
+    .invoke("discord-finding-post", { body: payload })
+    .then(({ error }) => {
+      if (error) {
+        console.warn("discord-finding-post failed:", error.message);
+      }
+    })
+    .catch((err) => {
+      console.warn("discord-finding-post threw:", err);
+    });
+}
+
 export async function callAdminAction(
   pin: string,
   action: string,
@@ -429,7 +453,12 @@ export async function createQuestFinding(
   author: string,
   hexCol: number,
   hexRow: number,
-  description: string
+  description: string,
+  /**
+   * Optional quest context. When provided, a "mission report" message is
+   * also posted to the Discord mission-reports channel.
+   */
+  questContext?: { title: string; level: string }
 ): Promise<void> {
   await supabase.from("quest_findings").insert({
     quest_id: questId,
@@ -438,6 +467,16 @@ export async function createQuestFinding(
     hex_row: hexRow,
     description: description.trim(),
   });
+  if (questContext) {
+    postFindingToDiscord({
+      author,
+      questTitle: questContext.title,
+      questLevel: questContext.level,
+      hexCol,
+      hexRow,
+      description: description.trim(),
+    });
+  }
 }
 
 export async function deleteQuestFinding(id: string): Promise<void> {

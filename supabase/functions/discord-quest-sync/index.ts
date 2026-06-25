@@ -121,11 +121,23 @@ function buildEmbed(quest: any) {
   ];
 
   if (quest.scheduled_date) {
-    fields.push({
-      name: "Scheduled",
-      value: String(quest.scheduled_date),
-      inline: true,
-    });
+    // Discord renders <t:UNIX:F> in each viewer's local timezone — e.g.
+    // "Saturday, January 18, 2025 7:00 PM" plus a "in 3 days" tooltip.
+    const ms = Date.parse(String(quest.scheduled_date));
+    if (Number.isFinite(ms)) {
+      const unix = Math.floor(ms / 1000);
+      fields.push({
+        name: "Scheduled",
+        value: `<t:${unix}:F> (<t:${unix}:R>)`,
+        inline: false,
+      });
+    } else {
+      fields.push({
+        name: "Scheduled",
+        value: String(quest.scheduled_date),
+        inline: true,
+      });
+    }
   }
 
   return {

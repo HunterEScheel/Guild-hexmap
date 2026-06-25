@@ -72,7 +72,10 @@ export function QuestFindings({
     setSubmitting(true);
     setError(null);
     try {
-      await createQuestFinding(quest.id, playerName, col, row, description);
+      await createQuestFinding(quest.id, playerName, col, row, description, {
+        title: quest.title,
+        level: quest.level,
+      });
       setHexCol("");
       setHexRow("");
       setDescription("");
