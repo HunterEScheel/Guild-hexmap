@@ -1,8 +1,9 @@
 // Supabase Edge Function: discord-finding-post
 //
-// One-shot post to the "mission reports" Discord channel each time a
-// player submits a finding on a completed quest. Unlike discord-quest-sync,
-// this never updates — every finding is its own message in the channel.
+// One-shot post to the "mission reports" Discord channel after a player
+// submits a finding. To prevent arbitrary content posting, the caller
+// passes only a finding id — the function reads the canonical finding +
+// quest from the DB via the service-role key and formats the message.
 //
 // Deploy via dashboard:
 //   1. Edge Functions → Deploy a new function → Via Editor
@@ -12,9 +13,13 @@
 //
 // Required secret:
 //   MISSION_REPORTS_WEBHOOK_URL = https://discord.com/api/webhooks/<id>/<token>
+//
+// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are auto-injected.
 
 // deno-lint-ignore-file no-explicit-any
 // @ts-nocheck — Deno runtime.
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -46,6 +51,15 @@ const LEVEL_COLOR: Record<string, number> = {
 
 const HEXMAP_URL = "https://scheels.quest/?tab=active-quests";
 
+// Hard caps so bots can't craft monster messages even via legit-looking DB rows.
+const MAX_DESCRIPTION = 500;
+const MAX_AUTHOR = 80;
+const MAX_TITLE = 120;
+
+function clamp(s: string, n: number): string {
+  return s.length > n ? s.slice(0, n) + "…" : s;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS });
@@ -65,6 +79,14 @@ Deno.serve(async (req) => {
         { status: 500, headers: JSON_CORS }
       );
     }
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) {
+      return new Response(
+        JSON.stringify({ error: "Supabase env vars missing" }),
+        { status: 500, headers: JSON_CORS }
+      );
+    }
 
     let body;
     try {
@@ -76,20 +98,63 @@ Deno.serve(async (req) => {
       });
     }
 
-    const author = String(body?.author ?? "").trim() || "Unknown";
-    const questTitle = String(body?.questTitle ?? "").trim() || "Unknown Quest";
-    const questLevel = String(body?.questLevel ?? "explore");
-    const hexCol = Number(body?.hexCol);
-    const hexRow = Number(body?.hexRow);
-    const description =
-      String(body?.description ?? "").trim() || "_(no description)_";
-
-    if (!Number.isFinite(hexCol) || !Number.isFinite(hexRow)) {
+    const findingId = String(body?.findingId ?? "");
+    if (!findingId) {
       return new Response(
-        JSON.stringify({ error: "hexCol/hexRow must be numbers" }),
+        JSON.stringify({ error: "findingId required" }),
         { status: 400, headers: JSON_CORS }
       );
     }
+
+    const supa = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    });
+
+    const { data: finding, error: fErr } = await supa
+      .from("quest_findings")
+      .select("*")
+      .eq("id", findingId)
+      .maybeSingle();
+    if (fErr) {
+      return new Response(
+        JSON.stringify({ error: `fetch finding failed: ${fErr.message}` }),
+        { status: 500, headers: JSON_CORS }
+      );
+    }
+    if (!finding) {
+      return new Response(
+        JSON.stringify({ ok: true, skipped: "no-finding" }),
+        { headers: JSON_CORS }
+      );
+    }
+
+    const { data: quest, error: qErr } = await supa
+      .from("quests")
+      .select("title, level")
+      .eq("id", finding.quest_id)
+      .maybeSingle();
+    if (qErr) {
+      return new Response(
+        JSON.stringify({ error: `fetch quest failed: ${qErr.message}` }),
+        { status: 500, headers: JSON_CORS }
+      );
+    }
+    if (!quest) {
+      return new Response(
+        JSON.stringify({ ok: true, skipped: "no-quest" }),
+        { headers: JSON_CORS }
+      );
+    }
+
+    const author = clamp(String(finding.author ?? "Unknown"), MAX_AUTHOR);
+    const description = clamp(
+      String(finding.description ?? "").trim() || "_(no description)_",
+      MAX_DESCRIPTION
+    );
+    const questTitle = clamp(String(quest.title ?? "Unknown Quest"), MAX_TITLE);
+    const questLevel = String(quest.level ?? "explore");
+    const hexCol = Number(finding.hex_col);
+    const hexRow = Number(finding.hex_row);
 
     const color = LEVEL_COLOR[questLevel] ?? 0x9ca3af;
     const levelLabel = LEVEL_LABEL[questLevel] ?? questLevel;
@@ -112,6 +177,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         username: "Hexmap",
         embeds: [embed],
+        allowed_mentions: { parse: [] },
       }),
     });
 

@@ -81,7 +81,17 @@ export function InitiativeTracker({
     const value = parseInt(initiative, 10);
     if (isNaN(value) || !playerName) return;
     setAdding(true);
-    await addInitiativeEntry(playerName, value, false);
+    // Snapshot the player's character into the encounter so the GM has
+    // current HP / AC to track and damage/heal against.
+    const character = characters.get(playerName);
+    const stats =
+      character?.hitPoints != null
+        ? {
+            hp: character.hitPoints,
+            ac: character.armorClass ?? undefined,
+          }
+        : undefined;
+    await addInitiativeEntry(playerName, value, false, stats);
     setInitiative("");
     setAdding(false);
   }
@@ -543,6 +553,7 @@ export function InitiativeTracker({
               position={i + 1}
               isAdmin={isAdmin}
               adminPin={adminPin}
+              viewerName={playerName}
               character={
                 entry.isCreature ? undefined : characters.get(entry.name)
               }
@@ -559,19 +570,26 @@ function InitiativeRow({
   position,
   isAdmin,
   adminPin,
+  viewerName,
   character,
 }: {
   entry: InitiativeEntry;
   position: number;
   isAdmin: boolean;
   adminPin: string | null;
+  viewerName: string | null;
   character?: Character;
 }) {
   const [hpDelta, setHpDelta] = useState("");
 
-  const hasHp = entry.isCreature && entry.hp != null && entry.maxHp != null;
+  const hasHp = entry.hp != null && entry.maxHp != null;
   const status = hasHp ? hpStatus(entry.hp!, entry.maxHp!) : null;
   const dead = hasHp && entry.hp! <= 0;
+  // The player viewing their own row sees their real HP. Other viewers
+  // see the qualitative label. Admin always sees the real HP.
+  const isOwnRow =
+    !entry.isCreature && viewerName != null && entry.name === viewerName;
+  const showActualHp = isAdmin || isOwnRow;
 
   async function applyDamage() {
     const delta = parseInt(hpDelta, 10);
@@ -632,11 +650,16 @@ function InitiativeRow({
               CR {formatCr(entry.cr ?? 0)} &middot; AC {entry.ac}
             </span>
           )}
+          {!entry.isCreature && isAdmin && entry.ac != null && (
+            <span style={{ color: "#9ca3af", fontSize: 12, marginLeft: 8 }}>
+              AC {entry.ac}
+            </span>
+          )}
         </div>
 
         {/* HP display */}
         {hasHp && (
-          isAdmin ? (
+          showActualHp ? (
             <span style={{ fontSize: 13, fontWeight: 600, color: status!.color, whiteSpace: "nowrap" }}>
               {entry.hp}/{entry.maxHp} HP
             </span>
@@ -645,22 +668,6 @@ function InitiativeRow({
               {status!.label}
             </span>
           )
-        )}
-
-        {!entry.isCreature && isAdmin && character && (
-          <span
-            style={{
-              fontSize: 12,
-              color: "#9ca3af",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {character.hitPoints != null ? `${character.hitPoints} HP` : "— HP"}
-            {" · "}
-            {character.armorClass != null
-              ? `AC ${character.armorClass}`
-              : "AC —"}
-          </span>
         )}
 
         {!entry.isCreature && (

@@ -170,18 +170,13 @@ function syncQuestToDiscord(questId: string): void {
 
 /**
  * Fire-and-forget Discord post to the "mission reports" channel.
- * One message per finding submission.
+ * The function reads the canonical finding + quest from the DB, so
+ * the caller passes only the new finding's id — no arbitrary content
+ * can be smuggled through this path.
  */
-function postFindingToDiscord(payload: {
-  author: string;
-  questTitle: string;
-  questLevel: string;
-  hexCol: number;
-  hexRow: number;
-  description: string;
-}): void {
+function postFindingToDiscord(findingId: string): void {
   supabase.functions
-    .invoke("discord-finding-post", { body: payload })
+    .invoke("discord-finding-post", { body: { findingId } })
     .then(({ error }) => {
       if (error) {
         console.warn("discord-finding-post failed:", error.message);
@@ -533,29 +528,20 @@ export async function createQuestFinding(
   author: string,
   hexCol: number,
   hexRow: number,
-  description: string,
-  /**
-   * Optional quest context. When provided, a "mission report" message is
-   * also posted to the Discord mission-reports channel.
-   */
-  questContext?: { title: string; level: string }
+  description: string
 ): Promise<void> {
-  await supabase.from("quest_findings").insert({
-    quest_id: questId,
-    author,
-    hex_col: hexCol,
-    hex_row: hexRow,
-    description: description.trim(),
+  // Route through the RPC so the server can enforce that the author is
+  // actually on the quest's party. The RPC also length-clamps the strings.
+  const { data, error } = await supabase.rpc("create_quest_finding", {
+    p_quest_id: questId,
+    p_author: author,
+    p_hex_col: hexCol,
+    p_hex_row: hexRow,
+    p_description: description,
   });
-  if (questContext) {
-    postFindingToDiscord({
-      author,
-      questTitle: questContext.title,
-      questLevel: questContext.level,
-      hexCol,
-      hexRow,
-      description: description.trim(),
-    });
+  if (error) throw new Error(error.message);
+  if (data) {
+    postFindingToDiscord(String(data));
   }
 }
 
@@ -569,6 +555,7 @@ export async function deleteQuestFinding(id: string): Promise<void> {
  * `generate-quests` Edge Function which calls OpenAI server-side.
  */
 export async function generateQuestsFromQuest(
+  pin: string,
   questId: string,
   hexes: Map<string, HexData>,
   quests: Quest[],
@@ -580,6 +567,7 @@ export async function generateQuestsFromQuest(
 
   const { data, error } = await supabase.functions.invoke("generate-quests", {
     body: {
+      pin,
       questId,
       hexes: filledHexes.map((h) => ({
         col: h.col,

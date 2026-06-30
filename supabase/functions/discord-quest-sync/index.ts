@@ -276,7 +276,10 @@ Deno.serve(async (req) => {
       const patchRes = await fetch(patchUrl, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ embeds: [embed] }),
+        body: JSON.stringify({
+          embeds: [embed],
+          allowed_mentions: { parse: [] },
+        }),
       });
       if (!patchRes.ok) {
         const text = await patchRes.text();
@@ -315,6 +318,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         username: "Hexmap",
         embeds: [embed],
+        allowed_mentions: { parse: [] },
       }),
     });
     if (!postRes.ok) {

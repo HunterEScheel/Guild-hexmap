@@ -198,6 +198,13 @@ Deno.serve(async (req) => {
         { status: 500, headers: JSON_CORS }
       );
     }
+    const adminPin = Deno.env.get("ADMIN_PIN");
+    if (!adminPin) {
+      return new Response(
+        JSON.stringify({ error: "ADMIN_PIN secret not set" }),
+        { status: 500, headers: JSON_CORS }
+      );
+    }
     const model = Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini";
 
     let body;
@@ -208,6 +215,15 @@ Deno.serve(async (req) => {
         status: 400,
         headers: JSON_CORS,
       });
+    }
+
+    // Lock behind admin PIN so anonymous bots can't drain OpenAI credits.
+    const submittedPin = String(body?.pin ?? "");
+    if (submittedPin !== adminPin) {
+      return new Response(
+        JSON.stringify({ error: "Invalid admin PIN" }),
+        { status: 401, headers: JSON_CORS }
+      );
     }
 
     if (!body || !body.questId || !Array.isArray(body.quests)) {

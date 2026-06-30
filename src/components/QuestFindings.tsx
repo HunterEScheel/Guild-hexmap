@@ -20,20 +20,48 @@ interface QuestFindingsProps {
   allQuests: Quest[];
   playerName: string | null;
   isAdmin: boolean;
-  /** Admin PIN, required for "Add as Quest" on AI suggestions. */
   adminPin: string | null;
-  /** Called when the player has no name set and tries to submit. */
   onSetPlayerName: () => void;
+}
+
+// Wax-seal pin colors. Each player gets a stable signature color hashed
+// from their name so all their dispatches share the same wax.
+const PIN_COLORS = [
+  "#8b1a1a", // crimson
+  "#1a3a8b", // lapis
+  "#5b1a8b", // mulberry
+  "#1a5b3a", // forest
+  "#c9a35b", // aged gold
+  "#5b3a1a", // umber
+];
+
+function hashString(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (h << 5) - h + s.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+}
+
+/** -1.8 .. +1.8 degrees, stable per finding id. */
+function rotationFromId(id: string): number {
+  const h = hashString(id);
+  return ((h % 1000) / 1000) * 3.6 - 1.8;
+}
+
+function pinColorForAuthor(name: string): string {
+  return PIN_COLORS[hashString(name) % PIN_COLORS.length];
 }
 
 /**
  * Findings panel for a single completed quest.
  *
- * - Anyone can read the findings.
- * - Party members (and admins) can add new findings to a completed quest.
- * - The author of a finding and any admin can delete it.
- * - Admins can hand the completed quest + its findings to OpenAI via the
- *   "Generate Quests" button.
+ * Visual register: a cartographer's field journal — each finding is a torn
+ * scrap of parchment pinned to a wood board with a wax seal in the
+ * player's signature color. The AI-suggestions panel shifts into an arcane
+ * register (purple aura, mystical typography) to contrast with the
+ * mundane reports.
  */
 export function QuestFindings({
   quest,
@@ -45,7 +73,9 @@ export function QuestFindings({
   adminPin,
   onSetPlayerName,
 }: QuestFindingsProps) {
-  const canAdd = playerName != null || isAdmin;
+  const isPartyMember =
+    playerName != null && quest.players.includes(playerName);
+  const canAdd = isPartyMember;
 
   const [hexCol, setHexCol] = useState("");
   const [hexRow, setHexRow] = useState("");
@@ -66,32 +96,36 @@ export function QuestFindings({
     const col = Number(hexCol);
     const row = Number(hexRow);
     if (!Number.isFinite(col) || !Number.isFinite(row)) {
-      setError("Col and row must be numbers");
+      setError("Coordinates must be numbers.");
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
-      await createQuestFinding(quest.id, playerName, col, row, description, {
-        title: quest.title,
-        level: quest.level,
-      });
+      await createQuestFinding(quest.id, playerName, col, row, description);
       setHexCol("");
       setHexRow("");
       setDescription("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add finding");
+      setError(
+        err instanceof Error ? err.message : "The seal would not hold."
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
   async function handleGenerate() {
+    if (!adminPin) {
+      setGenError("Admin PIN missing — log in again.");
+      return;
+    }
     setGenerating(true);
     setGenError(null);
     setSuggestions(null);
     try {
       const result = await generateQuestsFromQuest(
+        adminPin,
         quest.id,
         hexes,
         allQuests,
@@ -99,221 +133,153 @@ export function QuestFindings({
       );
       setSuggestions(result);
     } catch (err) {
-      setGenError(err instanceof Error ? err.message : "Failed to generate");
+      setGenError(
+        err instanceof Error ? err.message : "The Loremaster did not answer."
+      );
     } finally {
       setGenerating(false);
     }
   }
 
+  const countLabel = `${findings.length} ${findings.length === 1 ? "entry" : "entries"}`;
+
   return (
-    <div
-      style={{
-        marginTop: 8,
-        padding: "10px 14px",
-        background: "#12121f",
-        border: "1px solid #2e2e4a",
-        borderRadius: 6,
-        marginLeft: 16,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 8,
-          flexWrap: "wrap",
-          gap: 8,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 11,
-            color: "#9ca3af",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-            fontWeight: 600,
-          }}
-        >
-          Findings ({findings.length})
-        </span>
+    <div className="qfinding-board">
+      <div className="qfinding-header">
+        <div className="qfinding-title-row">
+          <svg className="qfinding-quill" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M21.3 2.7c-.4-.4-1-.4-1.4 0L8 14.6c-.5.5-.9 1.2-1 1.9l-.5 3.5c-.1.4.3.8.7.7l3.5-.5c.7-.1 1.4-.4 1.9-1L24.3 7.1c.4-.4.4-1 0-1.4l-3-3zM4 22h11v-2H4v2zm-2-4h7v-2H2v2z" />
+          </svg>
+          <h4 className="qfinding-title">Field Reports</h4>
+          <span className="qfinding-count">{countLabel}</span>
+        </div>
         {isAdmin && findings.length > 0 && (
           <button
             disabled={generating}
             onClick={handleGenerate}
-            style={{
-              background: generating ? "#3730a3" : "#6366f1",
-              color: "#fff",
-              border: "none",
-              borderRadius: 4,
-              padding: "4px 10px",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: generating ? "wait" : "pointer",
-            }}
+            className="qfinding-loremaster"
+            title="Send the findings to the Loremaster for new quest threads"
           >
-            {generating ? "Generating..." : "Generate Quests"}
+            {generating ? "Consulting…" : "Consult the Loremaster"}
           </button>
         )}
       </div>
 
-      {/* Existing findings list */}
       {findings.length === 0 ? (
-        <p style={{ color: "#6b7280", fontSize: 12, margin: "4px 0" }}>
-          No findings yet.
+        <p className="qfinding-empty">
+          No dispatches yet. The page awaits the first report from the field.
         </p>
       ) : (
-        <ul style={{ listStyle: "none", padding: 0, margin: "4px 0" }}>
+        <ul className="qfinding-grid">
           {findings.map((f) => {
             const canDelete = isAdmin || f.author === playerName;
             return (
               <li
                 key={f.id}
-                style={{
-                  display: "flex",
-                  alignItems: "baseline",
-                  gap: 6,
-                  margin: "3px 0",
-                  fontSize: 13,
-                  color: "#d1d5db",
-                  lineHeight: 1.4,
-                }}
+                className="qfinding-scrap"
+                style={
+                  {
+                    "--qf-rotation": `${rotationFromId(f.id)}deg`,
+                    "--qf-pin": pinColorForAuthor(f.author),
+                  } as React.CSSProperties
+                }
               >
-                <span
-                  style={{
-                    color: "#a78bfa",
-                    fontFamily:
-                      "ui-monospace, SFMono-Regular, Menlo, monospace",
-                    fontSize: 12,
-                  }}
-                >
+                <div className="qfinding-stamp">
                   ({f.hexCol}, {f.hexRow})
-                </span>
-                <span style={{ flex: 1 }}>
-                  {f.description}
-                  <span style={{ color: "#6b7280", fontSize: 11, marginLeft: 6 }}>
-                    — {f.author}
-                  </span>
-                </span>
-                {canDelete && (
-                  <button
-                    onClick={() => {
-                      if (confirm("Delete this finding?")) {
-                        deleteQuestFinding(f.id);
-                      }
-                    }}
-                    title="Delete finding"
-                    style={{
-                      background: "transparent",
-                      color: "#6b7280",
-                      border: "1px solid #2e2e4a",
-                      borderRadius: 3,
-                      padding: "1px 6px",
-                      fontSize: 11,
-                      cursor: "pointer",
-                    }}
-                  >
-                    ✕
-                  </button>
-                )}
+                </div>
+                <p className="qfinding-text">{f.description}</p>
+                <div className="qfinding-sig">
+                  <span className="qfinding-author">— {f.author}</span>
+                  {canDelete && (
+                    <button
+                      onClick={() => {
+                        if (confirm("Strike this dispatch from the board?")) {
+                          deleteQuestFinding(f.id);
+                        }
+                      }}
+                      className="qfinding-strike"
+                      title="Strike this dispatch"
+                      aria-label="Strike this dispatch"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </li>
             );
           })}
         </ul>
       )}
 
-      {/* Add-finding form */}
-      {!canAdd && (
-        <div
-          style={{
-            marginTop: 8,
-            display: "flex",
-            gap: 8,
-            alignItems: "center",
-            fontSize: 12,
-            color: "#9ca3af",
-          }}
-        >
-          <span>Set a player name to add findings.</span>
-          <button
-            onClick={onSetPlayerName}
-            style={{
-              background: "#4ade80",
-              color: "#000",
-              border: "none",
-              borderRadius: 4,
-              padding: "3px 10px",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Set Name
-          </button>
-        </div>
-      )}
-      {canAdd && (
-        <div
-          style={{
-            marginTop: 8,
-            display: "flex",
-            gap: 6,
-            alignItems: "center",
-            flexWrap: "wrap",
-          }}
-        >
-          <input
-            type="number"
-            value={hexCol}
-            onChange={(e) => setHexCol(e.target.value)}
-            placeholder="col"
-            style={{ ...inputStyle, width: 60 }}
-          />
-          <input
-            type="number"
-            value={hexRow}
-            onChange={(e) => setHexRow(e.target.value)}
-            placeholder="row"
-            style={{ ...inputStyle, width: 60 }}
-          />
-          <input
+      {!canAdd ? (
+        playerName == null ? (
+          <div className="qfinding-noname">
+            <p>A scribe needs their name before the seal can be set.</p>
+            <button onClick={onSetPlayerName}>Sign Your Name</button>
+          </div>
+        ) : (
+          <div className="qfinding-noname">
+            <p>
+              Only those who walked the path may file dispatches. Join the
+              quest first.
+            </p>
+          </div>
+        )
+      ) : (
+        <div className="qfinding-dispatch">
+          <div className="qfinding-dispatch-header">New Dispatch</div>
+          <div className="qfinding-coords-row">
+            <span>Hex&nbsp;(</span>
+            <input
+              type="number"
+              value={hexCol}
+              onChange={(e) => setHexCol(e.target.value)}
+              placeholder="col"
+              className="qfinding-coord"
+              aria-label="Hex column"
+            />
+            <span>,</span>
+            <input
+              type="number"
+              value={hexRow}
+              onChange={(e) => setHexRow(e.target.value)}
+              placeholder="row"
+              className="qfinding-coord"
+              aria-label="Hex row"
+            />
+            <span>)</span>
+          </div>
+          <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") handleAdd();
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleAdd();
             }}
-            placeholder="What did you find here?"
-            style={{ ...inputStyle, flex: 1, minWidth: 140 }}
+            placeholder="What did you find here? Whom did you meet? What burns to be remembered?"
+            className="qfinding-desc"
+            rows={3}
+            maxLength={500}
+            aria-label="Dispatch description"
           />
-          <button
-            disabled={submitting || !description.trim()}
-            onClick={handleAdd}
-            style={{
-              background: submitting ? "#166534" : "#4ade80",
-              color: "#000",
-              border: "none",
-              borderRadius: 4,
-              padding: "5px 12px",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor:
-                submitting || !description.trim() ? "not-allowed" : "pointer",
-              opacity: submitting || !description.trim() ? 0.6 : 1,
-            }}
-          >
-            Add
-          </button>
+          <div className="qfinding-actions">
+            <span className="qfinding-hint">⌘/Ctrl + Enter to seal</span>
+            <button
+              disabled={submitting || !description.trim()}
+              onClick={handleAdd}
+              className="qfinding-seal-btn"
+            >
+              {submitting ? "Sealing…" : "Affix the Seal"}
+            </button>
+          </div>
+          {error && <p className="qfinding-error">{error}</p>}
         </div>
       )}
-      {error && (
-        <p style={{ color: "#ef4444", fontSize: 12, margin: "6px 0 0" }}>{error}</p>
-      )}
 
-      {/* AI suggestions */}
-      {(suggestions || genError) && (
+      {(suggestions || genError || generating) && (
         <SuggestionsPanel
           suggestions={suggestions}
           error={genError}
+          loading={generating}
           adminPin={adminPin}
           onDismiss={() => {
             setSuggestions(null);
@@ -328,11 +294,13 @@ export function QuestFindings({
 function SuggestionsPanel({
   suggestions,
   error,
+  loading,
   adminPin,
   onDismiss,
 }: {
   suggestions: QuestSuggestion[] | null;
   error: string | null;
+  loading: boolean;
   adminPin: string | null;
   onDismiss: () => void;
 }) {
@@ -366,151 +334,65 @@ function SuggestionsPanel({
   }
 
   return (
-    <div
-      style={{
-        marginTop: 10,
-        background: "#1a2332",
-        border: "1px solid #3730a3",
-        borderRadius: 6,
-        padding: 10,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 8,
-        }}
-      >
-        <span
-          style={{
-            fontFamily: "'Cinzel', serif",
-            fontSize: 13,
-            color: "#a78bfa",
-            fontWeight: 600,
-          }}
-        >
-          AI Quest Suggestions
-        </span>
-        <button
-          onClick={onDismiss}
-          style={{
-            background: "transparent",
-            border: "1px solid #2e2e4a",
-            color: "#9ca3af",
-            borderRadius: 4,
-            padding: "2px 8px",
-            fontSize: 11,
-            cursor: "pointer",
-          }}
-        >
-          Dismiss
+    <div className="qf-loremaster-panel">
+      <div className="qf-loremaster-head">
+        <h5 className="qf-loremaster-title">Whispers from the Loremaster</h5>
+        <button onClick={onDismiss} className="qf-loremaster-dismiss">
+          Silence
         </button>
       </div>
-      {error && (
-        <p style={{ color: "#ef4444", fontSize: 12 }}>Error: {error}</p>
-      )}
-      {suggestions && suggestions.length === 0 && (
-        <p style={{ color: "#9ca3af", fontSize: 12 }}>
-          No new quests surfaced from these findings.
+
+      {loading && (
+        <p className="qf-loremaster-loading">
+          The Loremaster turns her gaze to the findings…
         </p>
       )}
-      {suggestions && suggestions.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+
+      {error && <p className="qf-loremaster-error">{error}</p>}
+
+      {!loading && suggestions && suggestions.length === 0 && (
+        <p className="qf-loremaster-empty">
+          The currents are quiet. No new threads surface from these dispatches.
+        </p>
+      )}
+
+      {!loading && suggestions && suggestions.length > 0 && (
+        <div className="qf-loremaster-list">
           {suggestions.map((s, i) => (
-            <div
-              key={i}
-              style={{
-                background: "#12121f",
-                border: "1px solid #2e2e4a",
-                borderRadius: 6,
-                padding: 10,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginBottom: 4,
-                  flexWrap: "wrap",
-                }}
-              >
+            <div key={i} className="qf-loremaster-vellum">
+              <div className="qf-vellum-head">
                 <span
-                  style={{
-                    background: QUEST_LEVEL_COLORS[s.level],
-                    color: "#000",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: "1px 6px",
-                    borderRadius: 3,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
-                  }}
+                  className="qf-vellum-level"
+                  style={{ background: QUEST_LEVEL_COLORS[s.level] }}
                 >
                   {QUEST_LEVEL_LABELS[s.level]}
                 </span>
-                <strong style={{ color: "#e8e8f0", fontSize: 13 }}>
-                  {s.title}
-                </strong>
-                <span style={{ color: "#9ca3af", fontSize: 11 }}>
-                  @ ({s.hexCol}, {s.hexRow})
+                <span className="qf-vellum-title">{s.title}</span>
+                <span className="qf-vellum-coords">
+                  ({s.hexCol}, {s.hexRow})
                   {s.endHexCol != null && s.endHexRow != null
                     ? ` → (${s.endHexCol}, ${s.endHexRow})`
                     : ""}
                 </span>
               </div>
-              <p
-                style={{
-                  color: "#d1d5db",
-                  fontSize: 12,
-                  margin: "2px 0",
-                  lineHeight: 1.5,
-                }}
-              >
-                {s.description}
-              </p>
+              <p className="qf-vellum-desc">{s.description}</p>
               {s.reward && (
-                <p style={{ color: "#fbbf24", fontSize: 11, margin: "2px 0" }}>
-                  Reward: {s.reward}
-                </p>
+                <p className="qf-vellum-reward">Reward: {s.reward}</p>
               )}
               {s.rationale && (
-                <p
-                  style={{
-                    color: "#6b7280",
-                    fontSize: 10,
-                    fontStyle: "italic",
-                    margin: "2px 0",
-                  }}
-                >
-                  {s.rationale}
-                </p>
+                <p className="qf-vellum-rationale">{s.rationale}</p>
               )}
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div className="qf-vellum-actions">
                 <button
                   disabled={creating === i || created.has(i)}
                   onClick={() => handleCreate(i, s)}
-                  style={{
-                    background: created.has(i) ? "#166534" : "#4ade80",
-                    color: "#000",
-                    border: "none",
-                    borderRadius: 4,
-                    padding: "3px 10px",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    cursor:
-                      creating === i || created.has(i)
-                        ? "not-allowed"
-                        : "pointer",
-                  }}
+                  className="qf-vellum-inscribe"
                 >
                   {created.has(i)
-                    ? "Added"
+                    ? "Inscribed"
                     : creating === i
-                      ? "Adding..."
-                      : "Add as Quest"}
+                      ? "Inscribing…"
+                      : "Inscribe in the Log"}
                 </button>
               </div>
             </div>
@@ -520,14 +402,3 @@ function SuggestionsPanel({
     </div>
   );
 }
-
-const inputStyle = {
-  background: "#0f0f1a",
-  border: "1px solid #2e2e4a",
-  borderRadius: 4,
-  padding: "5px 8px",
-  color: "#e8e8f0",
-  fontSize: 12,
-  outline: "none",
-  boxSizing: "border-box" as const,
-};
