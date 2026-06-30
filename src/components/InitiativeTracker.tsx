@@ -554,9 +554,6 @@ export function InitiativeTracker({
               isAdmin={isAdmin}
               adminPin={adminPin}
               viewerName={playerName}
-              character={
-                entry.isCreature ? undefined : characters.get(entry.name)
-              }
             />
           ))}
         </div>
@@ -571,14 +568,12 @@ function InitiativeRow({
   isAdmin,
   adminPin,
   viewerName,
-  character,
 }: {
   entry: InitiativeEntry;
   position: number;
   isAdmin: boolean;
   adminPin: string | null;
   viewerName: string | null;
-  character?: Character;
 }) {
   const [hpDelta, setHpDelta] = useState("");
 
