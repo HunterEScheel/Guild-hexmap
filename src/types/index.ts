@@ -65,6 +65,12 @@ export interface Quest {
   scheduledDate: string | null;
 }
 
+export interface Character {
+  playerName: string;
+  hitPoints: number | null;
+  armorClass: number | null;
+}
+
 export interface QuestFinding {
   id: string;
   questId: string;

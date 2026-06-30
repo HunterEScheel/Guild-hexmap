@@ -14,11 +14,13 @@ import { World } from "./components/World";
 import { Shop } from "./components/Shop";
 import { ActiveQuests } from "./components/ActiveQuests";
 import { InitiativeTracker } from "./components/InitiativeTracker";
+import { CharacterModal } from "./components/CharacterModal";
 import {
   useHexData,
   useQuests,
   useInitiative,
   useQuestFindings,
+  useCharacters,
   setHexTerrain,
   setHexChallengeTier,
   setHexLandmark,
@@ -72,6 +74,8 @@ function App() {
   const quests = useQuests();
   const initiativeEntries = useInitiative();
   const questFindings = useQuestFindings();
+  const characters = useCharacters();
+  const [showCharacterModal, setShowCharacterModal] = useState(false);
   const isMobile = useIsMobile();
   const [sidePanelOpen, setSidePanelOpen] = useState(!isMobile);
 
@@ -481,6 +485,7 @@ function App() {
             playerName={playerName}
             isAdmin={isAdmin}
             adminPin={adminPin}
+            characters={characters}
           />
         </div>
       ) : topPage === "about" && aboutSub === "system" ? (
@@ -524,6 +529,41 @@ function App() {
         </button>
       )}
 
+      {/* Global character editor — visible on every page */}
+      <button
+        onClick={() => {
+          if (!playerName) {
+            setShowNameModal(true);
+            return;
+          }
+          setShowCharacterModal(true);
+        }}
+        title={
+          playerName
+            ? `Edit character (${playerName})`
+            : "Set player name first"
+        }
+        style={{
+          position: "fixed",
+          bottom: 16,
+          left: isAdmin ? 16 : 68,
+          width: 44,
+          height: 44,
+          borderRadius: 8,
+          background: "#1e1e36",
+          border: "1px solid #2e2e4a",
+          color: "#9ca3af",
+          fontSize: 20,
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 100,
+        }}
+      >
+        &#128100;
+      </button>
+
       {/* Modals */}
       {showPinModal && (
         <AdminPinModal onVerify={verifyPin} onClose={closePinModal} />
@@ -545,6 +585,18 @@ function App() {
           onCancel={() => {
             setShowDatePicker(false);
             setPendingDateQuestId(null);
+          }}
+        />
+      )}
+
+      {showCharacterModal && playerName && (
+        <CharacterModal
+          currentName={playerName}
+          character={characters.get(playerName)}
+          onClose={() => setShowCharacterModal(false)}
+          onSaved={(newName) => {
+            localStorage.setItem("hexmap_player_name", newName);
+            setPlayerName(newName);
           }}
         />
       )}

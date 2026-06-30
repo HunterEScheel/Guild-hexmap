@@ -8,13 +8,14 @@ import {
 import { formatCr } from "../data/bestiary";
 import { searchCreatures } from "../services/dnd5e";
 import type { CreatureSearchResult } from "../services/dnd5e";
-import type { InitiativeEntry } from "../types";
+import type { Character, InitiativeEntry } from "../types";
 
 interface InitiativeTrackerProps {
   entries: InitiativeEntry[];
   playerName: string | null;
   isAdmin: boolean;
   adminPin: string | null;
+  characters: Map<string, Character>;
 }
 
 function hpStatus(hp: number, maxHp: number): { label: string; color: string } {
@@ -30,6 +31,7 @@ export function InitiativeTracker({
   playerName,
   isAdmin,
   adminPin,
+  characters,
 }: InitiativeTrackerProps) {
   const [initiative, setInitiative] = useState("");
   const [adding, setAdding] = useState(false);
@@ -541,6 +543,9 @@ export function InitiativeTracker({
               position={i + 1}
               isAdmin={isAdmin}
               adminPin={adminPin}
+              character={
+                entry.isCreature ? undefined : characters.get(entry.name)
+              }
             />
           ))}
         </div>
@@ -554,11 +559,13 @@ function InitiativeRow({
   position,
   isAdmin,
   adminPin,
+  character,
 }: {
   entry: InitiativeEntry;
   position: number;
   isAdmin: boolean;
   adminPin: string | null;
+  character?: Character;
 }) {
   const [hpDelta, setHpDelta] = useState("");
 
@@ -638,6 +645,22 @@ function InitiativeRow({
               {status!.label}
             </span>
           )
+        )}
+
+        {!entry.isCreature && isAdmin && character && (
+          <span
+            style={{
+              fontSize: 12,
+              color: "#9ca3af",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {character.hitPoints != null ? `${character.hitPoints} HP` : "— HP"}
+            {" · "}
+            {character.armorClass != null
+              ? `AC ${character.armorClass}`
+              : "AC —"}
+          </span>
         )}
 
         {!entry.isCreature && (

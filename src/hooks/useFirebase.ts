@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
 import type {
   ChallengeTier,
+  Character,
   HexData,
   Quest,
   TerrainType,
@@ -387,6 +388,85 @@ export async function updateInitiativeHp(
 
 export async function clearInitiativeTracker(pin: string): Promise<void> {
   await callAdminAction(pin, "clear_initiative", {});
+}
+
+// --- Characters ---
+
+function mapCharacter(row: Record<string, unknown>): Character {
+  return {
+    playerName: row.player_name as string,
+    hitPoints: (row.hit_points as number) ?? null,
+    armorClass: (row.armor_class as number) ?? null,
+  };
+}
+
+/** Live map of all characters keyed by player name. */
+export function useCharacters(): Map<string, Character> {
+  const [characters, setCharacters] = useState<Map<string, Character>>(
+    new Map()
+  );
+
+  useEffect(() => {
+    supabase
+      .from("characters")
+      .select("*")
+      .then(({ data }) => {
+        if (data) {
+          const map = new Map<string, Character>();
+          for (const row of data) {
+            const c = mapCharacter(row);
+            map.set(c.playerName, c);
+          }
+          setCharacters(map);
+        }
+      });
+
+    const channel = supabase
+      .channel("characters-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "characters" },
+        (payload) => {
+          setCharacters((prev) => {
+            const next = new Map(prev);
+            if (payload.eventType === "DELETE") {
+              const old = payload.old as { player_name: string };
+              next.delete(old.player_name);
+            } else {
+              const c = mapCharacter(payload.new);
+              next.set(c.playerName, c);
+            }
+            return next;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  return characters;
+}
+
+/**
+ * Save the player's character. If `oldName` is different from `newName`,
+ * cascades the rename across quests/findings/initiative.
+ */
+export async function saveCharacter(
+  oldName: string | null,
+  newName: string,
+  hitPoints: number | null,
+  armorClass: number | null
+): Promise<void> {
+  const { error } = await supabase.rpc("save_character", {
+    p_old_name: oldName,
+    p_new_name: newName.trim(),
+    p_hp: hitPoints,
+    p_ac: armorClass,
+  });
+  if (error) throw new Error(`save_character failed: ${error.message}`);
 }
 
 // --- Quest findings ---
