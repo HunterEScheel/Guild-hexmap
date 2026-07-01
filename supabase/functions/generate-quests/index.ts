@@ -1,18 +1,19 @@
 // Supabase Edge Function: generate-quests
 //
 // Takes a completed quest's id, the findings players reported during it,
-// and the current world state (filled hexes, all quests). Asks OpenAI for
-// 0-4 plausible follow-up quest suggestions anchored on the reported
-// findings.
+// and the current world state (filled hexes, all quests). Asks xAI's
+// Grok for 0-4 plausible follow-up quest suggestions anchored on the
+// reported findings.
 //
 // Deploy via dashboard: paste this whole file as the function body,
 // name the function "generate-quests", click Deploy.
 //
-// Required secret:
-//   OPENAI_API_KEY = sk-...
+// Required secrets:
+//   XAI_APIKEY = xai-...
+//   ADMIN_PIN  = <your admin pin>  (client sends this in the body)
 //
 // Optional secret:
-//   OPENAI_MODEL = gpt-4o-mini (default if unset)
+//   XAI_MODEL = grok-3-mini (default if unset)
 
 // deno-lint-ignore-file no-explicit-any
 // @ts-nocheck — runs in Deno, not browser TS build.
@@ -191,10 +192,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get("OPENAI_API_KEY");
+    const apiKey = Deno.env.get("XAI_APIKEY");
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: "OPENAI_API_KEY secret not set" }),
+        JSON.stringify({ error: "XAI_APIKEY secret not set" }),
         { status: 500, headers: JSON_CORS }
       );
     }
@@ -205,7 +206,7 @@ Deno.serve(async (req) => {
         { status: 500, headers: JSON_CORS }
       );
     }
-    const model = Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini";
+    const model = Deno.env.get("XAI_MODEL") || "grok-3-mini";
 
     let body;
     try {
@@ -243,7 +244,8 @@ Deno.serve(async (req) => {
       ? { col: fallbackHex.hexCol ?? fallbackHex.col, row: fallbackHex.hexRow ?? fallbackHex.row }
       : null;
 
-    const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    // xAI is OpenAI-compatible for chat completions.
+    const aiRes = await fetch("https://api.x.ai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -263,7 +265,7 @@ Deno.serve(async (req) => {
     if (!aiRes.ok) {
       const errText = await aiRes.text();
       return new Response(
-        JSON.stringify({ error: `OpenAI ${aiRes.status}: ${errText}` }),
+        JSON.stringify({ error: `xAI ${aiRes.status}: ${errText}` }),
         { status: 502, headers: JSON_CORS }
       );
     }
@@ -272,7 +274,7 @@ Deno.serve(async (req) => {
     const content = aiJson?.choices?.[0]?.message?.content;
     if (typeof content !== "string") {
       return new Response(
-        JSON.stringify({ error: "OpenAI returned no content" }),
+        JSON.stringify({ error: "xAI returned no content" }),
         { status: 502, headers: JSON_CORS }
       );
     }
@@ -283,7 +285,7 @@ Deno.serve(async (req) => {
     } catch {
       return new Response(
         JSON.stringify({
-          error: "OpenAI returned malformed JSON",
+          error: "xAI returned malformed JSON",
           raw: content,
         }),
         { status: 502, headers: JSON_CORS }
