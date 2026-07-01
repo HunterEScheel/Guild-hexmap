@@ -160,13 +160,15 @@ export function QuestEditor({
             <label
               style={{ color: "#9ca3af", fontSize: 12, marginBottom: 4, display: "block" }}
             >
-              Reward
+              Reward (gp)
             </label>
             <input
-              type="text"
+              type="number"
+              min={0}
+              step={1}
               value={reward}
               onChange={(e) => setReward(e.target.value)}
-              placeholder="e.g., 500 gold, Sword of Fire"
+              placeholder="Gold pieces"
               style={inputStyle}
             />
           </div>

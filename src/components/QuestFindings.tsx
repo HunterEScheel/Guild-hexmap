@@ -6,6 +6,7 @@ import {
   createQuest,
 } from "../hooks/useFirebase";
 import { QUEST_LEVEL_LABELS, QUEST_LEVEL_COLORS } from "../utils/colors";
+import { formatReward } from "../utils/reward";
 import type {
   HexData,
   Quest,
@@ -421,7 +422,7 @@ function SuggestionsPanel({
               </div>
               <p className="qf-vellum-desc">{s.description}</p>
               {s.reward && (
-                <p className="qf-vellum-reward">Reward: {s.reward}</p>
+                <p className="qf-vellum-reward">Reward: {formatReward(s.reward)}</p>
               )}
               {s.rationale && (
                 <p className="qf-vellum-rationale">{s.rationale}</p>

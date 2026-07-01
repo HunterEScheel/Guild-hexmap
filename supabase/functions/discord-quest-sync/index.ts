@@ -58,6 +58,20 @@ const COMPLETED_COLOR = 0x4b5563; // muted gray
 
 const HEXMAP_URL = "https://scheels.quest/?tab=active-quests";
 
+// Rewards are always gold pieces. Numeric strings get "X gp" formatting;
+// legacy free-form entries pass through untouched.
+function formatReward(reward: unknown): string {
+  if (reward == null) return "—";
+  const trimmed = String(reward).trim();
+  if (trimmed === "") return "—";
+  const stripped = trimmed.replace(/\s*gp\s*$/i, "").trim();
+  const n = Number(stripped);
+  if (Number.isFinite(n) && Number.isInteger(n) && n >= 0) {
+    return `${n.toLocaleString()} gp`;
+  }
+  return trimmed;
+}
+
 function statusLabel(status: string): string {
   if (status === "in_progress") return "In Progress";
   if (status === "completed") return "Completed";
@@ -108,9 +122,7 @@ function buildEmbed(quest: any) {
     },
     {
       name: "Reward",
-      value: quest.reward && String(quest.reward).trim() !== ""
-        ? String(quest.reward)
-        : "—",
+      value: formatReward(quest.reward),
       inline: false,
     },
     {

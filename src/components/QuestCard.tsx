@@ -1,5 +1,6 @@
 import { useCallback, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { QUEST_LEVEL_COLORS, QUEST_LEVEL_LABELS } from "../utils/colors";
+import { formatReward } from "../utils/reward";
 import type { Quest } from "../types";
 
 interface QuestCardProps {
@@ -173,7 +174,7 @@ export function QuestCard({
         <>
           <p className="qc-desc">{quest.description}</p>
           {quest.reward && (
-            <p className="qc-reward">Reward: {quest.reward}</p>
+            <p className="qc-reward">Reward: {formatReward(quest.reward)}</p>
           )}
         </>
       )}

@@ -61,6 +61,7 @@ Rules:
   - god: cosmic / endgame
 - Do not duplicate quests that already exist in the quest log.
 - Keep titles short (max 6 words). Descriptions 1-3 sentences.
+- "reward" must be a plain non-negative INTEGER representing gold pieces (gp). No units, no items, no strings — just the number as a JSON string (e.g. "500"). Scale by tier: explore ~50-200, recurring ~100-300, wolf ~200-600, demon ~800-2000, dragon ~3000-8000, terrasque ~15000-40000, god ~75000+.
 - If the findings don't suggest anything actionable, return an empty list.
 
 Respond with ONLY a JSON object of the form:
@@ -69,7 +70,7 @@ Respond with ONLY a JSON object of the form:
     {
       "title": "...",
       "description": "...",
-      "reward": "...",
+      "reward": "<integer gold amount as a string>",
       "level": "explore" | "recurring" | "wolf" | "demon" | "dragon" | "terrasque" | "god",
       "hexCol": <int>,
       "hexRow": <int>,
@@ -167,7 +168,20 @@ function sanitizeSuggestions(raw, fallbackHex) {
     out.push({
       title,
       description,
-      reward: String(s.reward ?? "").trim(),
+      // Coerce to an integer gold amount. Strip any "gp"/"gold" the model
+      // slipped in; if we can't parse a non-negative integer, blank it.
+      reward: (() => {
+        const raw = String(s.reward ?? "")
+          .trim()
+          .replace(/\s*(gp|gold|g)\s*$/i, "")
+          .replace(/,/g, "")
+          .trim();
+        const n = Number(raw);
+        if (Number.isFinite(n) && Number.isInteger(n) && n >= 0) {
+          return String(n);
+        }
+        return "";
+      })(),
       level,
       hexCol,
       hexRow,
