@@ -75,11 +75,20 @@ export function QuestFindings({
 }: QuestFindingsProps) {
   const isPartyMember =
     playerName != null && quest.players.includes(playerName);
-  const canAdd = isPartyMember;
+  // Admins can file on behalf of any party member — but only if there IS
+  // a party to attribute it to (the RPC rejects authors not on the party).
+  const canAdd = isPartyMember || (isAdmin && quest.players.length > 0);
 
   const [hexCol, setHexCol] = useState("");
   const [hexRow, setHexRow] = useState("");
   const [description, setDescription] = useState("");
+  // Admin "file as" author — defaults to first party member, or the admin's
+  // own name if they happen to be on the party.
+  const defaultAdminAuthor =
+    playerName && quest.players.includes(playerName)
+      ? playerName
+      : (quest.players[0] ?? "");
+  const [adminAuthor, setAdminAuthor] = useState(defaultAdminAuthor);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,10 +97,6 @@ export function QuestFindings({
   const [suggestions, setSuggestions] = useState<QuestSuggestion[] | null>(null);
 
   async function handleAdd() {
-    if (!playerName) {
-      onSetPlayerName();
-      return;
-    }
     if (!description.trim()) return;
     const col = Number(hexCol);
     const row = Number(hexRow);
@@ -99,17 +104,33 @@ export function QuestFindings({
       setError("Coordinates must be numbers.");
       return;
     }
+
+    // Admins file as any party member (picked from the dropdown).
+    // Players file as themselves.
+    let author: string;
+    if (isAdmin) {
+      author = adminAuthor;
+      if (!author) {
+        setError("Choose which party member is filing this dispatch.");
+        return;
+      }
+    } else {
+      if (!playerName) {
+        onSetPlayerName();
+        return;
+      }
+      author = playerName;
+    }
+
     setSubmitting(true);
     setError(null);
     try {
-      await createQuestFinding(quest.id, playerName, col, row, description);
+      await createQuestFinding(quest.id, author, col, row, description);
       setHexCol("");
       setHexRow("");
       setDescription("");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "The seal would not hold."
-      );
+      setError(err instanceof Error ? err.message : "The seal would not hold.");
     } finally {
       setSubmitting(false);
     }
@@ -228,6 +249,29 @@ export function QuestFindings({
       ) : (
         <div className="qfinding-dispatch">
           <div className="qfinding-dispatch-header">New Dispatch</div>
+          {isAdmin && quest.players.length > 0 && (
+            <div className="qfinding-author-row">
+              <label
+                className="qfinding-author-label"
+                htmlFor={`qf-file-as-${quest.id}`}
+              >
+                File as
+              </label>
+              <select
+                id={`qf-file-as-${quest.id}`}
+                value={adminAuthor}
+                onChange={(e) => setAdminAuthor(e.target.value)}
+                className="qfinding-author-select"
+                aria-label="File dispatch as"
+              >
+                {quest.players.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="qfinding-coords-row">
             <span>Hex&nbsp;(</span>
             <input

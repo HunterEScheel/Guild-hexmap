@@ -581,6 +581,55 @@ h1, h2, h3 {
   text-transform: uppercase;
 }
 
+.qfinding-author-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed rgba(94, 67, 44, 0.35);
+}
+
+.qfinding-author-label {
+  font-family: 'Special Elite', monospace;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--wax-red);
+  white-space: nowrap;
+}
+
+.qfinding-author-select {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--ink-fade);
+  font-family: 'Caveat', cursive;
+  font-size: 16px;
+  color: var(--ink);
+  outline: none;
+  padding: 2px 4px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6' fill='%235b432c'><path d='M0 0h10L5 6z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 4px center;
+  background-size: 8px 5px;
+  padding-right: 18px;
+}
+
+.qfinding-author-select:focus {
+  border-bottom-color: var(--wax-red);
+}
+
+.qfinding-author-select option {
+  font-family: 'EB Garamond', serif;
+  font-size: 14px;
+  background: #f3e0b8;
+  color: var(--ink);
+}
+
 .qfinding-coords-row {
   display: flex;
   align-items: baseline;

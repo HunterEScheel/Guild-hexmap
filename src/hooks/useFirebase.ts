@@ -191,7 +191,7 @@ export async function callAdminAction(
   pin: string,
   action: string,
   payload: Record<string, unknown>
-): Promise<void> {
+): Promise<Record<string, unknown>> {
   const { data, error } = await supabase.functions.invoke("admin-action", {
     body: { pin, action, payload },
   });
@@ -202,6 +202,7 @@ export async function callAdminAction(
     const msg = (data as { error?: string })?.error || "unknown error";
     throw new Error(msg);
   }
+  return data as Record<string, unknown>;
 }
 
 export async function setHexTerrain(
@@ -531,7 +532,8 @@ export async function createQuestFinding(
   description: string
 ): Promise<void> {
   // Route through the RPC so the server can enforce that the author is
-  // actually on the quest's party. The RPC also length-clamps the strings.
+  // actually on the quest's party (and clamp string lengths). Admins post
+  // as a party member from the UI dropdown, so this path serves everyone.
   const { data, error } = await supabase.rpc("create_quest_finding", {
     p_quest_id: questId,
     p_author: author,
