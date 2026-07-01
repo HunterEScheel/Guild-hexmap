@@ -200,9 +200,16 @@ export function QuestCard({
         )}
       </div>
 
-      {/* Expanded section — animates open via CSS grid 0fr → 1fr */}
+      {/* Expanded section — animates open via CSS grid 0fr → 1fr.
+         Clicks inside the expanded body must not bubble up to the card's
+         toggle handler, or focusing a text input would collapse the
+         card. To collapse from here, use the chevron or click the header. */}
       <div className="qc-extras" data-open={expanded}>
-        <div className="qc-extras-inner">
+        <div
+          className="qc-extras-inner"
+          onClick={stopBubbling}
+          onKeyDown={stopBubbling as unknown as (e: KeyboardEvent) => void}
+        >
           {schedLong && (
             <div className="qc-field">
               <span className="qc-field-label">Scheduled</span>
