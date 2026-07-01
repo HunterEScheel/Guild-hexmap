@@ -46,6 +46,18 @@ export function ActiveQuests({
       }
     }
 
+    // Completed section: newest first by scheduled date (which is the
+    // date the party actually played the session). Quests without a
+    // scheduled date sort to the bottom.
+    completed.sort((a, b) => {
+      const at = a.scheduledDate ?? "";
+      const bt = b.scheduledDate ?? "";
+      if (!at && !bt) return 0;
+      if (!at) return 1;
+      if (!bt) return -1;
+      return bt.localeCompare(at);
+    });
+
     return { inProgress, recruiting, completed };
   }, [quests]);
 

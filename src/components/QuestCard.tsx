@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { QUEST_LEVEL_COLORS, QUEST_LEVEL_LABELS } from "../utils/colors";
 import type { Quest } from "../types";
 
@@ -32,6 +32,26 @@ const STATUS_LABELS: Record<string, string> = {
   completed: "Completed",
 };
 
+function formatScheduled(iso: string, verbose: boolean): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString(undefined, {
+    weekday: verbose ? "long" : "short",
+    month: verbose ? "long" : "short",
+    day: "numeric",
+    year: verbose ? "numeric" : undefined,
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+/**
+ * QuestCard — an "ambient dossier". The whole card is the click target
+ * for expanding details. A chevron in the top-right corner signals the
+ * interaction; hovering lifts the card with a soft glow tinted by the
+ * quest's difficulty level. Details animate open with a smooth CSS grid
+ * height transition (no JS animation library required).
+ */
 export function QuestCard({
   quest,
   playerName,
@@ -48,213 +68,204 @@ export function QuestCard({
   const levelColor = QUEST_LEVEL_COLORS[quest.level];
   const hasJoined = playerName ? quest.players.includes(playerName) : false;
   const canJoin = !hasJoined && quest.status !== "completed";
-  const showDetails = !compact || expanded;
+  // Compact-collapsed hides everything except title/level/status.
+  const showBrief = !compact || expanded;
+
+  const toggle = useCallback(
+    () => setExpanded((v) => !v),
+    []
+  );
+
+  const onCardKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      // Only react when the card itself is focused — not when Enter/Space
+      // is pressed inside an inner button.
+      if (e.target !== e.currentTarget) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggle();
+      }
+    },
+    [toggle]
+  );
+
+  // Any click inside the actions row shouldn't toggle the card.
+  const stopBubbling = useCallback(
+    (e: MouseEvent) => e.stopPropagation(),
+    []
+  );
+
+  const schedShort = quest.scheduledDate
+    ? formatScheduled(quest.scheduledDate, false)
+    : null;
+  const schedLong = quest.scheduledDate
+    ? formatScheduled(quest.scheduledDate, true)
+    : null;
+
+  const actions = (
+    <div
+      className="qc-actions"
+      onClick={stopBubbling}
+      onKeyDown={stopBubbling as unknown as (e: KeyboardEvent) => void}
+    >
+      {canJoin && (
+        <button
+          className="qc-btn qc-btn--join"
+          onClick={() => onJoin(quest.id)}
+        >
+          Join
+        </button>
+      )}
+      {hasJoined && quest.status !== "completed" && (
+        <button
+          className="qc-btn qc-btn--leave"
+          onClick={() => onLeave(quest.id)}
+        >
+          Leave
+        </button>
+      )}
+      {isAdmin && (
+        <>
+          <button
+            className="qc-btn qc-btn--edit"
+            onClick={() => onEdit(quest)}
+          >
+            Edit
+          </button>
+          <button
+            className="qc-btn qc-btn--delete"
+            onClick={() => onDelete(quest.id)}
+          >
+            Delete
+          </button>
+        </>
+      )}
+    </div>
+  );
 
   return (
     <div
-      style={{
-        background: "#1e1e36",
-        borderRadius: 8,
-        padding: 12,
-        marginBottom: 8,
-        borderLeft: `4px solid ${levelColor}`,
-      }}
+      className={`quest-card${expanded ? " quest-card--expanded" : ""}`}
+      style={{ ["--level-color" as any]: levelColor }}
+      role="button"
+      aria-expanded={expanded}
+      tabIndex={0}
+      onClick={toggle}
+      onKeyDown={onCardKeyDown}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 6,
-        }}
-      >
-        <h4 style={{ margin: 0, color: "#e8e8f0", fontSize: 14 }}>
-          {quest.title}
-        </h4>
+      <header className="qc-head">
+        <div className="qc-title-row">
+          <h4 className="qc-title">{quest.title}</h4>
+          <span className="qc-level">{QUEST_LEVEL_LABELS[quest.level]}</span>
+        </div>
         <span
-          style={{
-            fontSize: 11,
-            padding: "2px 8px",
-            borderRadius: 10,
-            background: levelColor,
-            color: "#000",
-            fontWeight: 600,
-          }}
+          className="qc-chevron"
+          aria-hidden="true"
+          title={expanded ? "Collapse" : "Expand"}
         >
-          {QUEST_LEVEL_LABELS[quest.level]}
+          <svg viewBox="0 0 12 12">
+            <path d="M2.5 4.5 L6 8 L9.5 4.5" />
+          </svg>
         </span>
-      </div>
+      </header>
 
-      {showDetails && (
+      {showBrief && (
         <>
-          <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 6 }}>
-            {quest.description}
-          </p>
-
+          <p className="qc-desc">{quest.description}</p>
           {quest.reward && (
-            <p style={{ color: "#fbbf24", fontSize: 12, marginBottom: 6 }}>
-              Reward: {quest.reward}
-            </p>
+            <p className="qc-reward">Reward: {quest.reward}</p>
           )}
         </>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 6,
-        }}
-      >
+      <div className="qc-meta">
         <span
-          style={{
-            fontSize: 11,
-            color:
-              quest.status === "completed"
-                ? "#4ade80"
-                : quest.status === "in_progress"
-                  ? "#facc15"
-                  : "#60a5fa",
-          }}
+          className={`qc-status qc-status--${quest.status}`}
         >
           {STATUS_LABELS[quest.status]}
         </span>
-        {showDetails && (
-          <span style={{ fontSize: 11, color: "#6b7280" }}>
+
+        {quest.players.length > 0 && (
+          <span className="qc-peek-item">
+            <PeekIcon type="party" />
             {quest.players.length} adventurer
-            {quest.players.length !== 1 ? "s" : ""}
+            {quest.players.length === 1 ? "" : "s"}
+          </span>
+        )}
+        {schedShort && (
+          <span className="qc-peek-item">
+            <PeekIcon type="clock" />
+            {schedShort}
           </span>
         )}
       </div>
 
-      {/* Expanded details: schedule, party, extras (findings) */}
-      {expanded && (
-        <div
-          style={{
-            borderTop: "1px solid #2e2e4a",
-            paddingTop: 8,
-            marginTop: 4,
-            marginBottom: 8,
-          }}
-        >
-          {quest.scheduledDate && (
-            <div style={{ marginBottom: 6 }}>
-              <span style={{ fontSize: 11, color: "#6b7280" }}>Scheduled: </span>
-              <span style={{ fontSize: 12, color: "#60a5fa" }}>
-                {new Date(quest.scheduledDate).toLocaleString(undefined, {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
+      {/* Expanded section — animates open via CSS grid 0fr → 1fr */}
+      <div className="qc-extras" data-open={expanded}>
+        <div className="qc-extras-inner">
+          {schedLong && (
+            <div className="qc-field">
+              <span className="qc-field-label">Scheduled</span>
+              <span className="qc-field-value qc-field-value--sched">
+                {schedLong}
               </span>
             </div>
           )}
 
-          <div style={{ marginBottom: 6 }}>
-            <span style={{ fontSize: 11, color: "#6b7280" }}>Party: </span>
-            <span style={{ fontSize: 12, color: "#d1d5db" }}>
+          <div className="qc-field">
+            <span className="qc-field-label">Party</span>
+            <span className="qc-field-value">
               {quest.players.length > 0 ? quest.players.join(", ") : "—"}
             </span>
           </div>
 
           {expandedExtras}
+
+          {/* In compact mode (SidePanel), actions live inside the expand.
+             In full mode (ActiveQuests), actions live below the expand
+             and stay visible when collapsed — see below. */}
+          {compact && actions}
         </div>
-      )}
-
-      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-        <button
-          onClick={() => setExpanded((v) => !v)}
-          style={{
-            background: "transparent",
-            color: "#9ca3af",
-            border: "1px solid #2e2e4a",
-            borderRadius: 4,
-            padding: "4px 10px",
-            fontSize: 12,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-          }}
-        >
-          <span style={{ fontSize: 10 }}>{expanded ? "▴" : "▾"}</span>
-          {expanded ? "Hide details" : "Details"}
-        </button>
-
-        {showDetails && (
-          <>
-            {canJoin && (
-              <button
-                onClick={() => onJoin(quest.id)}
-                style={{
-                  background: "#4ade80",
-                  color: "#000",
-                  border: "none",
-                  borderRadius: 4,
-                  padding: "4px 12px",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                Join
-              </button>
-            )}
-            {hasJoined && quest.status !== "completed" && (
-              <button
-                onClick={() => onLeave(quest.id)}
-                style={{
-                  background: "#ef4444",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 4,
-                  padding: "4px 12px",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                Leave
-              </button>
-            )}
-            {isAdmin && (
-              <>
-                <button
-                  onClick={() => onEdit(quest)}
-                  style={{
-                    background: "#6366f1",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 4,
-                    padding: "4px 12px",
-                    fontSize: 12,
-                    cursor: "pointer",
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => onDelete(quest.id)}
-                  style={{
-                    background: "#7f1d1d",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 4,
-                    padding: "4px 12px",
-                    fontSize: 12,
-                    cursor: "pointer",
-                  }}
-                >
-                  Delete
-                </button>
-              </>
-            )}
-          </>
-        )}
       </div>
+
+      {!compact && actions}
     </div>
+  );
+}
+
+function PeekIcon({ type }: { type: "party" | "clock" }) {
+  if (type === "party") {
+    return (
+      <svg
+        className="qc-peek-icon"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        <circle cx="6" cy="6" r="2.4" />
+        <path d="M2 13c.5-2.5 2-3.6 4-3.6s3.5 1.1 4 3.6" />
+        <circle cx="11" cy="5.2" r="1.8" />
+        <path d="M10 9.5c1.8-.1 3.5.8 4 3" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      className="qc-peek-icon"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <circle cx="8" cy="8" r="6" />
+      <path d="M8 4.5 v3.5 l2.5 1.5" />
+    </svg>
   );
 }
