@@ -35,6 +35,8 @@ const SYSTEM_PROMPT = `You are the world-spinner for a Dungeons & Dragons hexcra
 
 Your job: given a list of currently-available quests (nobody signed up yet) and the map state, pick 1 or 2 (usually 1) and roleplay a small NPC party that completed each one off-screen.
 
+STRONG PREFERENCE — always pick a quest with level "recurring" or "explore" first if any are available. NPC parties handle the guild's small standing work (patrols, deliveries, scouting) before they'd touch anything with real teeth. Only reach for a "wolf" (or higher) quest if there are no recurring/explore quests on offer.
+
 For each chosen quest, produce:
 - An NPC party of 2-4 adventurers. Evocative fantasy names with a hint of personality (e.g. "Sable Ash the Wandering", "Grivvin Ironfoot", "Kess of the Reeds"). Do not reuse names that already appear in the players' quest party lists.
 - 2-4 findings — locations they visited and what they saw there. Attribute each finding to one party member.
@@ -161,6 +163,25 @@ Deno.serve(async (req) => {
     const candidateQuests = (quests ?? []).filter(
       (q) => !Array.isArray(q.players) || q.players.length === 0
     );
+
+    // Sort so recurring / explore quests come first in the prompt.
+    // The AI is instructed to always pick from these first if any exist;
+    // ordering the list reinforces the preference and helps if the model
+    // grabs the first thing it sees.
+    const PRIORITY = new Map<string, number>([
+      ["recurring", 0],
+      ["explore", 1],
+      ["wolf", 2],
+      ["demon", 3],
+      ["dragon", 4],
+      ["terrasque", 5],
+      ["god", 6],
+    ]);
+    candidateQuests.sort((a, b) => {
+      const ap = PRIORITY.get(a.level) ?? 9;
+      const bp = PRIORITY.get(b.level) ?? 9;
+      return ap - bp;
+    });
     if (candidateQuests.length === 0) {
       return new Response(
         JSON.stringify({
