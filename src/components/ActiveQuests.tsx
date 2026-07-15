@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { QuestCard } from "./QuestCard";
 import { QuestFindings } from "./QuestFindings";
+import { generateNpcQuestReport } from "../hooks/useFirebase";
 import type { HexData, Quest, QuestFinding } from "../types";
 
 interface ActiveQuestsProps {
@@ -14,6 +15,7 @@ interface ActiveQuestsProps {
   onLeaveQuest: (questId: string) => void;
   onEditQuest: (quest: Quest) => void;
   onDeleteQuest: (questId: string) => void;
+  onSetQuestActive: (questId: string) => void;
   onSetPlayerName: () => void;
 }
 
@@ -28,9 +30,30 @@ export function ActiveQuests({
   onLeaveQuest,
   onEditQuest,
   onDeleteQuest,
+  onSetQuestActive,
   onSetPlayerName,
 }: ActiveQuestsProps) {
   const [showCompleted, setShowCompleted] = useState(false);
+  const [rivalRunning, setRivalRunning] = useState(false);
+  const [rivalMessage, setRivalMessage] = useState<string | null>(null);
+  const [rivalError, setRivalError] = useState<string | null>(null);
+
+  async function runRivalParty() {
+    if (!adminPin) return;
+    setRivalRunning(true);
+    setRivalMessage(null);
+    setRivalError(null);
+    try {
+      const { message } = await generateNpcQuestReport(adminPin);
+      setRivalMessage(message);
+    } catch (err) {
+      setRivalError(
+        err instanceof Error ? err.message : "Failed to summon rivals"
+      );
+    } finally {
+      setRivalRunning(false);
+    }
+  }
   const { inProgress, recruiting, completed } = useMemo(() => {
     const inProgress: Quest[] = [];
     const recruiting: Quest[] = [];
@@ -86,6 +109,69 @@ export function ActiveQuests({
         Quests that adventurers have signed up for or are underway.
       </p>
 
+      {isAdmin && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            padding: "10px 12px",
+            background: "rgba(139, 106, 171, 0.08)",
+            border: "1px dashed rgba(180, 130, 220, 0.4)",
+            borderRadius: 4,
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <span
+              style={{
+                display: "block",
+                color: "#c39ae0",
+                fontSize: 11,
+                fontFamily: "'Cinzel', serif",
+                fontWeight: 600,
+                letterSpacing: "0.16em",
+                textTransform: "uppercase",
+                marginBottom: 2,
+              }}
+            >
+              Rival Party
+            </span>
+            <span
+              style={{
+                color: rivalError ? "#ef4444" : "#9ca3af",
+                fontSize: 12,
+                fontStyle: rivalMessage || rivalError ? "italic" : "normal",
+              }}
+            >
+              {rivalError ??
+                rivalMessage ??
+                "Have an unseen NPC party quietly close 1–2 unclaimed quests, filing findings you can read later."}
+            </span>
+          </div>
+          <button
+            disabled={rivalRunning}
+            onClick={runRivalParty}
+            style={{
+              background: rivalRunning ? "#3730a3" : "#6366f1",
+              color: "#fff",
+              border: "none",
+              borderRadius: 4,
+              padding: "6px 14px",
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: "0.08em",
+              cursor: rivalRunning ? "wait" : "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {rivalRunning ? "Whispering…" : "Rival Party Report"}
+          </button>
+        </div>
+      )}
+
+
       {inProgress.length === 0 && recruiting.length === 0 && (
         <div
           style={{
@@ -112,6 +198,7 @@ export function ActiveQuests({
             onLeave={onLeaveQuest}
             onEdit={onEditQuest}
             onDelete={onDeleteQuest}
+            onSetActive={onSetQuestActive}
             accentColor="#facc15"
           />
           <QuestSection
@@ -123,6 +210,7 @@ export function ActiveQuests({
             onLeave={onLeaveQuest}
             onEdit={onEditQuest}
             onDelete={onDeleteQuest}
+            onSetActive={onSetQuestActive}
             accentColor="#60a5fa"
           />
         </>
@@ -163,6 +251,7 @@ export function ActiveQuests({
             onLeave={onLeaveQuest}
             onEdit={onEditQuest}
             onDelete={onDeleteQuest}
+            onSetActive={onSetQuestActive}
             accentColor="#4ade80"
             renderExpandedExtras={(quest) => (
               <QuestFindings
@@ -192,6 +281,7 @@ function QuestSection({
   onLeave,
   onEdit,
   onDelete,
+  onSetActive,
   accentColor,
   renderExpandedExtras,
 }: {
@@ -203,6 +293,7 @@ function QuestSection({
   onLeave: (questId: string) => void;
   onEdit: (quest: Quest) => void;
   onDelete: (questId: string) => void;
+  onSetActive: (questId: string) => void;
   accentColor: string;
   renderExpandedExtras?: (quest: Quest) => React.ReactNode;
 }) {
@@ -263,6 +354,7 @@ function QuestSection({
               onLeave={onLeave}
               onEdit={onEdit}
               onDelete={onDelete}
+              onSetActive={onSetActive}
               expandedExtras={
                 renderExpandedExtras ? renderExpandedExtras(quest) : undefined
               }

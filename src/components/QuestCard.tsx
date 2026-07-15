@@ -11,6 +11,7 @@ interface QuestCardProps {
   onLeave: (questId: string) => void;
   onEdit: (quest: Quest) => void;
   onDelete: (questId: string) => void;
+  onSetActive: (questId: string) => void;
   /**
    * Optional content rendered inside the expanded section, below the party
    * list. ActiveQuests uses this to inject the QuestFindings panel for
@@ -61,6 +62,7 @@ export function QuestCard({
   onLeave,
   onEdit,
   onDelete,
+  onSetActive,
   expandedExtras,
   defaultExpanded = false,
   compact = false,
@@ -69,6 +71,10 @@ export function QuestCard({
   const levelColor = QUEST_LEVEL_COLORS[quest.level];
   const hasJoined = playerName ? quest.players.includes(playerName) : false;
   const canJoin = !hasJoined && quest.status !== "completed";
+  // Party members can start the session; hidden once it's already active
+  // or completed.
+  const canSetActive =
+    hasJoined && quest.status !== "in_progress" && quest.status !== "completed";
   // Compact-collapsed hides everything except title/level/status.
   const showBrief = !compact || expanded;
 
@@ -115,6 +121,15 @@ export function QuestCard({
           onClick={() => onJoin(quest.id)}
         >
           Join
+        </button>
+      )}
+      {canSetActive && (
+        <button
+          className="qc-btn qc-btn--active"
+          onClick={() => onSetActive(quest.id)}
+          title="Mark this quest as the session being played now"
+        >
+          Set Active
         </button>
       )}
       {hasJoined && quest.status !== "completed" && (

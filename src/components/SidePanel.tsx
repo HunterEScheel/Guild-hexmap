@@ -16,6 +16,7 @@ interface SidePanelProps {
   adminPin: string | null;
   onJoinQuest: (questId: string) => void;
   onLeaveQuest: (questId: string) => void;
+  onSetQuestActive: (questId: string) => void;
   onEditQuest: (quest: Quest) => void;
   onDeleteQuest: (questId: string) => void;
   onAddQuest: () => void;
@@ -34,6 +35,7 @@ export function SidePanel({
   adminPin,
   onJoinQuest,
   onLeaveQuest,
+  onSetQuestActive,
   onEditQuest,
   onDeleteQuest,
   onAddQuest,
@@ -338,6 +340,7 @@ export function SidePanel({
                   isAdmin={isAdmin}
                   onJoin={onJoinQuest}
                   onLeave={onLeaveQuest}
+                  onSetActive={onSetQuestActive}
                   onEdit={onEditQuest}
                   onDelete={onDeleteQuest}
                   compact

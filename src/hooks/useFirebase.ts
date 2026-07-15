@@ -289,6 +289,52 @@ export async function leaveQuest(
   syncQuestToDiscord(questId);
 }
 
+export async function setQuestActive(
+  questId: string,
+  playerName: string
+): Promise<void> {
+  const { error } = await supabase.rpc("set_quest_active", {
+    p_quest_id: questId,
+    p_player_name: playerName,
+  });
+  if (error) throw new Error(`set_quest_active failed: ${error.message}`);
+  syncQuestToDiscord(questId);
+}
+
+export interface NpcReportSummary {
+  questId: string;
+  questTitle: string;
+  party: string[];
+  findingCount: number;
+}
+
+/**
+ * Admin-only. Asks the AI to roleplay a rival NPC party that quietly
+ * completed 1-2 currently-available (unclaimed) quests. Marks them
+ * completed and populates their findings.
+ */
+export async function generateNpcQuestReport(
+  pin: string
+): Promise<{ applied: NpcReportSummary[]; message: string }> {
+  const { data, error } = await supabase.functions.invoke("npc-quest-report", {
+    body: { pin },
+  });
+  if (error) throw new Error(`Edge function error: ${error.message}`);
+  if (!data || (data as { ok?: boolean }).ok !== true) {
+    throw new Error(
+      (data as { error?: string })?.error || "unknown NPC report error"
+    );
+  }
+  const d = data as {
+    applied?: NpcReportSummary[];
+    message?: string;
+  };
+  return {
+    applied: d.applied ?? [],
+    message: d.message ?? "",
+  };
+}
+
 // --- Initiative Tracker ---
 
 function mapInitiativeEntry(row: Record<string, unknown>): InitiativeEntry {

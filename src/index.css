@@ -303,6 +303,7 @@ h1, h2, h3 {
 .qc-btn:active { transform: translateY(0); filter: brightness(0.95); }
 
 .qc-btn--join   { background: #4ade80; color: #0a0a0a; }
+.qc-btn--active { background: #facc15; color: #0a0a0a; }
 .qc-btn--leave  { background: #ef4444; color: #fff; }
 .qc-btn--edit   { background: #6366f1; color: #fff; }
 .qc-btn--delete { background: #7f1d1d; color: #fff; }

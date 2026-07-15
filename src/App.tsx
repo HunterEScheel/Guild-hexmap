@@ -29,6 +29,7 @@ import {
   deleteQuest,
   joinQuest,
   leaveQuest,
+  setQuestActive,
   addInitiativeEntry,
   clearInitiativeTracker,
 } from "./hooks/useFirebase";
@@ -203,6 +204,17 @@ function App() {
       if (playerName) {
         leaveQuest(questId, playerName);
       }
+    },
+    [playerName]
+  );
+
+  const handleSetQuestActive = useCallback(
+    (questId: string) => {
+      if (!playerName) return;
+      setQuestActive(questId, playerName).catch((err) => {
+        console.error("setQuestActive failed:", err);
+        alert(err instanceof Error ? err.message : "Failed to set active");
+      });
     },
     [playerName]
   );
@@ -445,6 +457,7 @@ function App() {
             adminPin={adminPin}
             onJoinQuest={handleJoinQuest}
             onLeaveQuest={handleLeaveQuest}
+            onSetQuestActive={handleSetQuestActive}
             onEditQuest={handleEditQuest}
             onDeleteQuest={handleDeleteQuest}
             onAddQuest={handleAddQuest}
@@ -467,6 +480,7 @@ function App() {
             onLeaveQuest={handleLeaveQuest}
             onEditQuest={handleEditQuest}
             onDeleteQuest={handleDeleteQuest}
+            onSetQuestActive={handleSetQuestActive}
             onSetPlayerName={() => setShowNameModal(true)}
           />
         </div>
