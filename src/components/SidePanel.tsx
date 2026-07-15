@@ -226,8 +226,9 @@ export function SidePanel({
             )}
           </div>
 
-          {/* Challenge Tier */}
-          {canHaveEncounters && (
+          {/* Challenge Tier — admin only. Players shouldn't see how
+             dangerous a hex is before they head there. */}
+          {canHaveEncounters && isAdmin && (
             <div style={{ marginBottom: 16 }}>
               <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#9ca3af" }}>
                 Challenge Tier
