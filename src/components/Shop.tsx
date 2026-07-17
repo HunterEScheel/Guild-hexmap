@@ -376,7 +376,7 @@ function MagicShop({
                         &times;{item.quantity}
                       </span>
                     </button>
-                    {isAdmin && (
+                    {playerName && (
                       <button
                         onClick={async (e) => {
                           e.stopPropagation();
@@ -403,18 +403,21 @@ function MagicShop({
                           }
                         }}
                         style={{
-                          background: "#7f1d1d",
-                          color: "#fff",
+                          background: "#4ade80",
+                          color: "#0a0a0a",
                           border: "none",
                           borderRadius: 4,
-                          padding: "4px 10px",
+                          padding: "4px 12px",
                           fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: "0.05em",
                           cursor: "pointer",
                           marginLeft: 4,
                           flexShrink: 0,
                         }}
+                        title={`Buy for ${item.price || "unknown price"}`}
                       >
-                        Purchased
+                        Buy
                       </button>
                     )}
                     </div>
