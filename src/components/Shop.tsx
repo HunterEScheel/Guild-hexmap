@@ -11,6 +11,7 @@ import {
   executeRestock,
   searchMagicItems,
   purchaseItem,
+  purchaseEquipment,
   updateShopItemPrice,
   rollDice,
   fetchShopPurchases,
@@ -72,7 +73,7 @@ export function Shop({ isAdmin, adminPin, playerName }: ShopProps) {
       </div>
 
       {tab === "equipment" ? (
-        <EquipmentShop isAdmin={isAdmin} />
+        <EquipmentShop isAdmin={isAdmin} playerName={playerName} />
       ) : tab === "magic" ? (
         <MagicShop
           isAdmin={isAdmin}
@@ -109,10 +110,17 @@ function TabButton({ label, active, onClick }: { label: string; active: boolean;
 
 // --- Equipment Tab (static from API) ---
 
-function EquipmentShop({ isAdmin }: { isAdmin: boolean }) {
+function EquipmentShop({
+  isAdmin,
+  playerName,
+}: {
+  isAdmin: boolean;
+  playerName: string | null;
+}) {
   const [items, setItems] = useState<EquipmentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const [buying, setBuying] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEquipment().then(setItems).finally(() => setLoading(false));
@@ -144,6 +152,7 @@ function EquipmentShop({ isAdmin }: { isAdmin: boolean }) {
               {["Name", "Category", "Cost", "Damage / AC", "Weight", "Notes"].map((h) => (
                 <th key={h} style={thStyle}>{h}</th>
               ))}
+              {playerName && <th style={thStyle}></th>}
             </tr>
           </thead>
           <tbody>
@@ -186,6 +195,44 @@ function EquipmentShop({ isAdmin }: { isAdmin: boolean }) {
                   <td style={tdStyle}>{item.damage ?? item.armorClass ?? "—"}</td>
                   <td style={tdStyle}>{item.weight}</td>
                   <td style={{ ...tdStyle, fontSize: 11 }}>{notes}</td>
+                  {playerName && (
+                    <td style={{ ...tdStyle, textAlign: "right" }}>
+                      <button
+                        disabled={buying === item.index}
+                        onClick={async () => {
+                          setBuying(item.index);
+                          try {
+                            await purchaseEquipment(playerName, item);
+                          } catch (err) {
+                            alert(
+                              err instanceof Error
+                                ? err.message
+                                : "Purchase failed"
+                            );
+                          } finally {
+                            setBuying(null);
+                          }
+                        }}
+                        style={{
+                          background:
+                            buying === item.index ? "#166534" : "#4ade80",
+                          color: "#0a0a0a",
+                          border: "none",
+                          borderRadius: 4,
+                          padding: "4px 12px",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: "0.05em",
+                          cursor:
+                            buying === item.index ? "wait" : "pointer",
+                          whiteSpace: "nowrap",
+                        }}
+                        title={`Buy for ${item.cost || "unknown price"}`}
+                      >
+                        {buying === item.index ? "Buying…" : "Buy"}
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}

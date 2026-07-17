@@ -563,6 +563,36 @@ export async function purchaseItem(
   if (error) throw new Error(`purchase_shop_item failed: ${error.message}`);
 }
 
+/**
+ * Purchase a piece of equipment (weapon, armor, or other Open5e item).
+ * Equipment isn't stocked in shop_inventory — it's fetched from Open5e — so
+ * we route through a dedicated RPC that takes the item's snapshot fields
+ * directly and logs the purchase into shop_purchases.
+ */
+export async function purchaseEquipment(
+  buyer: string,
+  item: EquipmentItem
+): Promise<void> {
+  const parts: string[] = [];
+  if (item.damage) parts.push(`Damage: ${item.damage}`);
+  if (item.armorClass) parts.push(`AC: ${item.armorClass}`);
+  if (item.weight && item.weight !== "—") parts.push(`Weight: ${item.weight}`);
+  if (item.properties?.length)
+    parts.push(`Properties: ${item.properties.join(", ")}`);
+  if (item.stealth) parts.push(item.stealth);
+  if (item.strength) parts.push(item.strength);
+
+  const { error } = await supabase.rpc("purchase_equipment", {
+    p_buyer: buyer,
+    p_item_index: item.index,
+    p_item_name: item.name,
+    p_category: item.category,
+    p_cost: item.cost,
+    p_description: parts.join("\n"),
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function fetchShopPurchases(): Promise<PurchasedItem[]> {
   const { data, error } = await supabase
     .from("shop_purchases")
