@@ -443,6 +443,7 @@ function mapCharacter(row: Record<string, unknown>): Character {
     playerName: row.player_name as string,
     hitPoints: (row.hit_points as number) ?? null,
     armorClass: (row.armor_class as number) ?? null,
+    gold: (row.gold as number) ?? 0,
   };
 }
 
@@ -504,13 +505,15 @@ export async function saveCharacter(
   oldName: string | null,
   newName: string,
   hitPoints: number | null,
-  armorClass: number | null
+  armorClass: number | null,
+  gold: number
 ): Promise<void> {
   const { error } = await supabase.rpc("save_character", {
     p_old_name: oldName,
     p_new_name: newName.trim(),
     p_hp: hitPoints,
     p_ac: armorClass,
+    p_gold: gold,
   });
   if (error) throw new Error(`save_character failed: ${error.message}`);
 }

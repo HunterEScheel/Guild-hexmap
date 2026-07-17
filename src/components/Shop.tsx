@@ -395,6 +395,11 @@ function MagicShop({
                           } catch (err) {
                             console.error("Purchase failed:", err);
                             await loadInventory(); // revert on error
+                            alert(
+                              err instanceof Error
+                                ? err.message
+                                : "Purchase failed"
+                            );
                           }
                         }}
                         style={{

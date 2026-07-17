@@ -25,6 +25,9 @@ export function CharacterModal({
   const [ac, setAc] = useState<string>(
     character?.armorClass != null ? String(character.armorClass) : ""
   );
+  const [gold, setGold] = useState<string>(
+    character?.gold != null ? String(character.gold) : "0"
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,13 +41,17 @@ export function CharacterModal({
       const newName = name.trim();
       const hpNum = hp.trim() === "" ? null : parseInt(hp, 10);
       const acNum = ac.trim() === "" ? null : parseInt(ac, 10);
+      const goldNum = gold.trim() === "" ? 0 : parseInt(gold, 10);
       if (hpNum != null && !Number.isFinite(hpNum)) {
         throw new Error("HP must be a number");
       }
       if (acNum != null && !Number.isFinite(acNum)) {
         throw new Error("AC must be a number");
       }
-      await saveCharacter(currentName, newName, hpNum, acNum);
+      if (!Number.isFinite(goldNum) || goldNum < 0) {
+        throw new Error("Gold must be a non-negative number");
+      }
+      await saveCharacter(currentName, newName, hpNum, acNum, goldNum);
       onSaved(newName);
       onClose();
     } catch (err) {
@@ -123,6 +130,18 @@ export function CharacterModal({
               style={inputStyle}
             />
           </div>
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <label style={labelStyle}>Gold (gp)</label>
+          <input
+            type="number"
+            min={0}
+            value={gold}
+            onChange={(e) => setGold(e.target.value)}
+            placeholder="0"
+            style={{ ...inputStyle, color: "#fbbf24" }}
+          />
         </div>
 
         {error && (

@@ -15,6 +15,7 @@ import { Shop } from "./components/Shop";
 import { ActiveQuests } from "./components/ActiveQuests";
 import { InitiativeTracker } from "./components/InitiativeTracker";
 import { CharacterModal } from "./components/CharacterModal";
+import { MyItems } from "./components/MyItems";
 import {
   useHexData,
   useQuests,
@@ -45,7 +46,8 @@ type GuildSub =
   | "active-quests"
   | "bounties"
   | "shop"
-  | "initiative";
+  | "initiative"
+  | "my-items";
 type AboutSub = "system" | "world" | "characters";
 
 // Read ?tab=<sub> on first load so Discord (or any other deep link) can
@@ -367,6 +369,7 @@ function App() {
             <SubTab label="Bounty Board" active={guildSub === "bounties"} onClick={() => setGuildSub("bounties")} />
             <SubTab label="Shop" active={guildSub === "shop"} onClick={() => setGuildSub("shop")} />
             <SubTab label="Initiative" active={guildSub === "initiative"} onClick={() => setGuildSub("initiative")} />
+            <SubTab label="My Items" active={guildSub === "my-items"} onClick={() => setGuildSub("my-items")} />
           </>
         ) : (
           <>
@@ -500,6 +503,21 @@ function App() {
             isAdmin={isAdmin}
             adminPin={adminPin}
             characters={characters}
+          />
+        </div>
+      ) : topPage === "guild" && guildSub === "my-items" ? (
+        <div style={{ flex: 1, overflow: "auto" }}>
+          <MyItems
+            playerName={playerName}
+            character={playerName ? characters.get(playerName) : undefined}
+            onSetPlayerName={() => setShowNameModal(true)}
+            onOpenCharacter={() => {
+              if (!playerName) {
+                setShowNameModal(true);
+                return;
+              }
+              setShowCharacterModal(true);
+            }}
           />
         </div>
       ) : topPage === "about" && aboutSub === "system" ? (

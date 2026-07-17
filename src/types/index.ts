@@ -70,6 +70,7 @@ export interface Character {
   playerName: string;
   hitPoints: number | null;
   armorClass: number | null;
+  gold: number;
 }
 
 export interface QuestFinding {
