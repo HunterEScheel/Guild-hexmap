@@ -35,7 +35,7 @@ const SYSTEM_PROMPT = `You are the world-spinner for a Dungeons & Dragons hexcra
 
 Your job: given a list of currently-available quests (nobody signed up yet) and the map state, pick 1 or 2 (usually 1) and roleplay a small NPC party that completed each one off-screen.
 
-STRONG PREFERENCE — always pick a quest with level "recurring" or "explore" first if any are available. NPC parties handle the guild's small standing work (patrols, deliveries, scouting) before they'd touch anything with real teeth. Only reach for a "wolf" (or higher) quest if there are no recurring/explore quests on offer.
+HARD RULE — you may ONLY pick from quests with level "recurring" or "explore". NPC parties handle the guild's small standing work (patrols, deliveries, scouting). Anything more dangerous is beyond their remit and stays for the players. Every quest in the list below is already filtered to be one of these two levels.
 
 For each chosen quest, produce:
 - An NPC party of 2-4 adventurers. Evocative fantasy names with a hint of personality (e.g. "Sable Ash the Wandering", "Grivvin Ironfoot", "Kess of the Reeds"). Do not reuse names that already appear in the players' quest party lists.
@@ -160,34 +160,25 @@ Deno.serve(async (req) => {
         { status: 500, headers: JSON_CORS }
       );
     }
-    const candidateQuests = (quests ?? []).filter(
+    const unclaimed = (quests ?? []).filter(
       (q) => !Array.isArray(q.players) || q.players.length === 0
     );
 
-    // Sort so recurring / explore quests come first in the prompt.
-    // The AI is instructed to always pick from these first if any exist;
-    // ordering the list reinforces the preference and helps if the model
-    // grabs the first thing it sees.
-    const PRIORITY = new Map<string, number>([
-      ["recurring", 0],
-      ["explore", 1],
-      ["wolf", 2],
-      ["demon", 3],
-      ["dragon", 4],
-      ["terrasque", 5],
-      ["god", 6],
-    ]);
-    candidateQuests.sort((a, b) => {
-      const ap = PRIORITY.get(a.level) ?? 9;
-      const bp = PRIORITY.get(b.level) ?? 9;
-      return ap - bp;
-    });
+    // Hard rule: NPC parties only take recurring or explore work.
+    // Anything above their pay grade stays for the players.
+    const ALLOWED_LEVELS = new Set(["recurring", "explore"]);
+    const candidateQuests = unclaimed.filter((q) =>
+      ALLOWED_LEVELS.has(q.level)
+    );
     if (candidateQuests.length === 0) {
+      const hadHigherOnly = unclaimed.length > 0;
       return new Response(
         JSON.stringify({
           ok: true,
           skipped: "no-candidate-quests",
-          message: "No unclaimed available quests to hand to an NPC party.",
+          message: hadHigherOnly
+            ? "No recurring or explore quests on offer — the rival parties won't touch anything more dangerous."
+            : "No unclaimed quests for the rival parties to consider.",
         }),
         { headers: JSON_CORS }
       );
@@ -288,7 +279,11 @@ Deno.serve(async (req) => {
       // Mark the quest completed with the NPC party.
       const { error: updErr } = await supa
         .from("quests")
-        .update({ status: "completed", players: party })
+        .update({
+          status: "completed",
+          players: party,
+          completed_at: new Date().toISOString(),
+        })
         .eq("id", questId)
         .eq("status", "available"); // double-check nothing changed under us
       if (updErr) continue;
@@ -300,7 +295,11 @@ Deno.serve(async (req) => {
         // Roll back the quest status if findings failed to insert.
         await supa
           .from("quests")
-          .update({ status: "available", players: [] })
+          .update({
+            status: "available",
+            players: [],
+            completed_at: null,
+          })
           .eq("id", questId);
         continue;
       }

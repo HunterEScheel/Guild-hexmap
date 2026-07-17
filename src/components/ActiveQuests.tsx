@@ -69,12 +69,12 @@ export function ActiveQuests({
       }
     }
 
-    // Completed section: newest first by scheduled date (which is the
-    // date the party actually played the session). Quests without a
-    // scheduled date sort to the bottom.
+    // Completed section: newest first by completed_at timestamp.
+    // Falls back to scheduled_date for legacy rows if completedAt is
+    // missing (backfill migration handles most, but be safe).
     completed.sort((a, b) => {
-      const at = a.scheduledDate ?? "";
-      const bt = b.scheduledDate ?? "";
+      const at = a.completedAt ?? a.scheduledDate ?? "";
+      const bt = b.completedAt ?? b.scheduledDate ?? "";
       if (!at && !bt) return 0;
       if (!at) return 1;
       if (!bt) return -1;

@@ -280,6 +280,13 @@ Deno.serve(async (req) => {
             return badRequest("invalid status");
           }
           updates.status = payload.status;
+          // Stamp completed_at when a quest moves into completed; clear it
+          // if it ever moves back out.
+          if (payload.status === "completed") {
+            updates.completed_at = new Date().toISOString();
+          } else {
+            updates.completed_at = null;
+          }
         }
         if (payload.hexCol !== undefined) updates.hex_col = Number(payload.hexCol);
         if (payload.hexRow !== undefined) updates.hex_row = Number(payload.hexRow);

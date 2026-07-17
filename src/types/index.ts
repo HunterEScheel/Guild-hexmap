@@ -63,6 +63,7 @@ export interface Quest {
   endHexRow: number | null;
   players: string[];
   scheduledDate: string | null;
+  completedAt: string | null;
 }
 
 export interface Character {

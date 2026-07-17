@@ -143,6 +143,7 @@ function mapQuest(row: Record<string, unknown>): Quest {
     endHexRow: (row.end_hex_row as number) ?? null,
     players: (row.players as string[]) ?? [],
     scheduledDate: (row.scheduled_date as string) ?? null,
+    completedAt: (row.completed_at as string) ?? null,
   };
 }
 
