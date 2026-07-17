@@ -22,6 +22,7 @@ import type {
   RestockSettings,
   PurchasedItem,
 } from "../services/shop";
+import { PurchasedItemCard } from "./PurchasedItemCard";
 
 type ShopTab = "equipment" | "magic" | "purchased";
 
@@ -826,83 +827,15 @@ function PurchasedShop() {
       </div>
 
       {purchases.length > 0 && (
-        <div style={{ overflowX: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              fontSize: 13,
-            }}
-          >
-            <thead>
-              <tr>
-                <th style={purchTh}>Item</th>
-                <th style={purchTh}>Rarity</th>
-                <th style={purchTh}>Price</th>
-                <th style={purchTh}>Buyer</th>
-                <th style={purchTh}>When</th>
-              </tr>
-            </thead>
-            <tbody>
-              {purchases.map((p) => (
-                <tr key={p.id}>
-                  <td style={{ ...purchTd, color: "#e8e8f0", fontWeight: 500 }}>
-                    {p.itemName}
-                  </td>
-                  <td
-                    style={{
-                      ...purchTd,
-                      color:
-                        RARITY_COLORS[p.rarity.toLowerCase()] ?? "#d1d5db",
-                      textTransform: "capitalize",
-                    }}
-                  >
-                    {p.rarity}
-                  </td>
-                  <td style={{ ...purchTd, color: "#fbbf24" }}>
-                    {p.price || "—"}
-                  </td>
-                  <td style={purchTd}>
-                    {p.buyer ?? (
-                      <span style={{ color: "#6b7280", fontStyle: "italic" }}>
-                        anonymous
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ ...purchTd, color: "#9ca3af", fontSize: 12 }}>
-                    {new Date(p.purchasedAt).toLocaleString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {purchases.map((p) => (
+            <PurchasedItemCard key={p.id} item={p} showBuyer />
+          ))}
         </div>
       )}
     </>
   );
 }
-
-const purchTh: React.CSSProperties = {
-  textAlign: "left",
-  padding: "8px 12px",
-  borderBottom: "2px solid #2e2e4a",
-  color: "#9ca3af",
-  fontWeight: 600,
-  fontSize: 12,
-  textTransform: "uppercase",
-  letterSpacing: "0.5px",
-};
-
-const purchTd: React.CSSProperties = {
-  padding: "8px 12px",
-  borderBottom: "1px solid #1e1e36",
-  color: "#d1d5db",
-};
 
 const searchStyle: React.CSSProperties = {
   width: "100%",
