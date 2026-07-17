@@ -490,7 +490,7 @@ function App() {
         </div>
       ) : topPage === "guild" && guildSub === "shop" ? (
         <div style={{ flex: 1, overflow: "auto" }}>
-          <Shop isAdmin={isAdmin} adminPin={adminPin} />
+          <Shop isAdmin={isAdmin} adminPin={adminPin} playerName={playerName} />
         </div>
       ) : topPage === "guild" && guildSub === "initiative" ? (
         <div style={{ flex: 1, overflow: "auto" }}>

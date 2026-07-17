@@ -13,23 +13,30 @@ import {
   purchaseItem,
   updateShopItemPrice,
   rollDice,
+  fetchShopPurchases,
 } from "../services/shop";
 import type {
   EquipmentItem,
   ShopItem,
   RestockRule,
   RestockSettings,
+  PurchasedItem,
 } from "../services/shop";
 
-type ShopTab = "equipment" | "magic";
+type ShopTab = "equipment" | "magic" | "purchased";
 
 interface ShopProps {
   isAdmin: boolean;
   adminPin: string | null;
+  playerName: string | null;
 }
 
-export function Shop({ isAdmin, adminPin }: ShopProps) {
+export function Shop({ isAdmin, adminPin, playerName }: ShopProps) {
   const [tab, setTab] = useState<ShopTab>("equipment");
+  // Player-only view can't reach the "purchased" tab.
+  if (tab === "purchased" && !isAdmin) {
+    setTab("magic");
+  }
 
   return (
     <div
@@ -54,12 +61,25 @@ export function Shop({ isAdmin, adminPin }: ShopProps) {
       <div style={{ display: "flex", gap: 0, marginBottom: 24 }}>
         <TabButton label="Equipment" active={tab === "equipment"} onClick={() => setTab("equipment")} />
         <TabButton label="Magic Items" active={tab === "magic"} onClick={() => setTab("magic")} />
+        {isAdmin && (
+          <TabButton
+            label="Purchased Items"
+            active={tab === "purchased"}
+            onClick={() => setTab("purchased")}
+          />
+        )}
       </div>
 
       {tab === "equipment" ? (
         <EquipmentShop isAdmin={isAdmin} />
+      ) : tab === "magic" ? (
+        <MagicShop
+          isAdmin={isAdmin}
+          adminPin={adminPin}
+          playerName={playerName}
+        />
       ) : (
-        <MagicShop isAdmin={isAdmin} adminPin={adminPin} />
+        <PurchasedShop />
       )}
     </div>
   );
@@ -188,9 +208,11 @@ const RARITY_COLORS: Record<string, string> = {
 function MagicShop({
   isAdmin,
   adminPin,
+  playerName,
 }: {
   isAdmin: boolean;
   adminPin: string | null;
+  playerName: string | null;
 }) {
   const [inventory, setInventory] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -369,7 +391,7 @@ function MagicShop({
                             );
                           }
                           try {
-                            await purchaseItem(item.id);
+                            await purchaseItem(item.id, playerName);
                           } catch (err) {
                             console.error("Purchase failed:", err);
                             await loadInventory(); // revert on error
@@ -731,6 +753,148 @@ function RestockAdmin({
 function Loading({ text }: { text: string }) {
   return <div style={{ textAlign: "center", padding: 40, color: "#6b7280" }}>{text}</div>;
 }
+
+// --- Purchased items log (admin only) ---
+
+function PurchasedShop() {
+  const [purchases, setPurchases] = useState<PurchasedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    async function load() {
+      setLoading(true);
+      const data = await fetchShopPurchases();
+      if (alive) {
+        setPurchases(data);
+        setLoading(false);
+      }
+    }
+    load();
+    // Polling isn't necessary — purchases table is realtime-published, but
+    // for simplicity we just refetch on tab mount. Refresh button below
+    // gives admins a manual retry.
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (loading) return <Loading text="Loading purchase log..." />;
+
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          marginBottom: 12,
+        }}
+      >
+        <p style={{ color: "#9ca3af", fontSize: 13, margin: 0 }}>
+          {purchases.length === 0
+            ? "No purchases yet."
+            : `${purchases.length} purchase${purchases.length === 1 ? "" : "s"} logged.`}
+        </p>
+        <button
+          onClick={async () => {
+            setLoading(true);
+            const data = await fetchShopPurchases();
+            setPurchases(data);
+            setLoading(false);
+          }}
+          style={{
+            background: "transparent",
+            color: "#9ca3af",
+            border: "1px solid #2e2e4a",
+            borderRadius: 4,
+            padding: "4px 10px",
+            fontSize: 12,
+            cursor: "pointer",
+          }}
+        >
+          Refresh
+        </button>
+      </div>
+
+      {purchases.length > 0 && (
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: 13,
+            }}
+          >
+            <thead>
+              <tr>
+                <th style={purchTh}>Item</th>
+                <th style={purchTh}>Rarity</th>
+                <th style={purchTh}>Price</th>
+                <th style={purchTh}>Buyer</th>
+                <th style={purchTh}>When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {purchases.map((p) => (
+                <tr key={p.id}>
+                  <td style={{ ...purchTd, color: "#e8e8f0", fontWeight: 500 }}>
+                    {p.itemName}
+                  </td>
+                  <td
+                    style={{
+                      ...purchTd,
+                      color:
+                        RARITY_COLORS[p.rarity.toLowerCase()] ?? "#d1d5db",
+                      textTransform: "capitalize",
+                    }}
+                  >
+                    {p.rarity}
+                  </td>
+                  <td style={{ ...purchTd, color: "#fbbf24" }}>
+                    {p.price || "—"}
+                  </td>
+                  <td style={purchTd}>
+                    {p.buyer ?? (
+                      <span style={{ color: "#6b7280", fontStyle: "italic" }}>
+                        anonymous
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ ...purchTd, color: "#9ca3af", fontSize: 12 }}>
+                    {new Date(p.purchasedAt).toLocaleString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
+}
+
+const purchTh: React.CSSProperties = {
+  textAlign: "left",
+  padding: "8px 12px",
+  borderBottom: "2px solid #2e2e4a",
+  color: "#9ca3af",
+  fontWeight: 600,
+  fontSize: 12,
+  textTransform: "uppercase",
+  letterSpacing: "0.5px",
+};
+
+const purchTd: React.CSSProperties = {
+  padding: "8px 12px",
+  borderBottom: "1px solid #1e1e36",
+  color: "#d1d5db",
+};
 
 const searchStyle: React.CSSProperties = {
   width: "100%",

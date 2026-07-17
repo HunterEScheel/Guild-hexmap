@@ -30,6 +30,16 @@ export interface RestockSettings {
   count: number;
 }
 
+export interface PurchasedItem {
+  id: string;
+  itemIndex: string;
+  itemName: string;
+  rarity: string;
+  price: string;
+  buyer: string | null;
+  purchasedAt: string;
+}
+
 export interface EquipmentItem {
   index: string;
   name: string;
@@ -539,10 +549,37 @@ export async function executeRestock(pin: string): Promise<{ added: number }> {
   return { added: inserts.length };
 }
 
-export async function purchaseItem(id: string): Promise<void> {
-  // Player-facing: goes through a Postgres RPC that decrements or deletes.
-  const { error } = await supabase.rpc("purchase_shop_item", { p_id: id });
+export async function purchaseItem(
+  id: string,
+  buyer?: string | null
+): Promise<void> {
+  // Player-facing: goes through a Postgres RPC that decrements or deletes
+  // and logs the purchase into shop_purchases with the buyer's name.
+  const { error } = await supabase.rpc("purchase_shop_item", {
+    p_id: id,
+    p_buyer: buyer ?? null,
+  });
   if (error) throw new Error(`purchase_shop_item failed: ${error.message}`);
+}
+
+export async function fetchShopPurchases(): Promise<PurchasedItem[]> {
+  const { data, error } = await supabase
+    .from("shop_purchases")
+    .select("*")
+    .order("purchased_at", { ascending: false });
+  if (error) {
+    console.error("Shop purchases fetch error:", error);
+    return [];
+  }
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    itemIndex: row.item_index,
+    itemName: row.item_name,
+    rarity: row.rarity,
+    price: row.price ?? "",
+    buyer: row.buyer,
+    purchasedAt: row.purchased_at,
+  }));
 }
 
 export async function updateShopItemPrice(
