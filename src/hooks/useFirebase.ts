@@ -85,10 +85,13 @@ export function useQuests(): Quest[] {
   const [quests, setQuests] = useState<Quest[]>([]);
 
   useEffect(() => {
-    // Initial fetch
+    // Initial fetch — order by completed_at DESC so the newest completions
+    // arrive first. Non-completed quests (completed_at is null) sort to
+    // the end and are re-grouped client-side by status.
     supabase
       .from("quests")
       .select("*")
+      .order("completed_at", { ascending: false, nullsFirst: false })
       .then(({ data }) => {
         if (data) {
           setQuests(data.map(mapQuest));
