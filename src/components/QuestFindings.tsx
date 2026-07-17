@@ -371,6 +371,7 @@ function SuggestionsPanel({
         endHexRow: s.endHexRow,
         players: [],
         scheduledDate: null,
+        completedAt: null,
       });
       setCreated((prev) => new Set(prev).add(i));
     } finally {

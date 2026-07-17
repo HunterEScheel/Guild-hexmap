@@ -64,6 +64,7 @@ export function QuestEditor({
       endHexRow: hasEnd ? Number(endRow) : null,
       players: quest?.players ?? [],
       scheduledDate: quest?.scheduledDate ?? null,
+      completedAt: quest?.completedAt ?? null,
     });
   };
 
