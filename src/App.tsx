@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { HexGrid } from "./components/HexGrid";
 import { SidePanel } from "./components/SidePanel";
 import { AdminToolbar } from "./components/AdminToolbar";
@@ -50,29 +50,92 @@ type GuildSub =
   | "my-items";
 type AboutSub = "system" | "world" | "characters";
 
-// Read ?tab=<sub> on first load so Discord (or any other deep link) can
-// route the user straight to a specific page. Recognized values match
-// GuildSub keys.
-function initialGuildSubFromUrl(): GuildSub {
-  if (typeof window === "undefined") return "map";
-  const params = new URLSearchParams(window.location.search);
-  const tab = params.get("tab");
-  if (
-    tab === "map" ||
-    tab === "active-quests" ||
-    tab === "bounties" ||
-    tab === "shop" ||
-    tab === "initiative"
-  ) {
-    return tab;
+// URL <-> nav-state routing. We use plain query params so no server-side
+// rewrites are needed on Vercel (no path-based routes to configure):
+//   ?about=system|world|characters   → About page + sub
+//   ?tab=map|active-quests|...        → Guild page + sub  (default: map)
+const GUILD_SUBS: readonly GuildSub[] = [
+  "map",
+  "active-quests",
+  "bounties",
+  "shop",
+  "initiative",
+  "my-items",
+];
+const ABOUT_SUBS: readonly AboutSub[] = ["system", "world", "characters"];
+
+interface NavState {
+  topPage: TopPage;
+  guildSub: GuildSub;
+  aboutSub: AboutSub;
+}
+
+function navFromUrl(): NavState {
+  if (typeof window === "undefined") {
+    return { topPage: "guild", guildSub: "map", aboutSub: "system" };
   }
-  return "map";
+  const params = new URLSearchParams(window.location.search);
+  const about = params.get("about");
+  if (about && (ABOUT_SUBS as readonly string[]).includes(about)) {
+    return {
+      topPage: "about",
+      guildSub: "map",
+      aboutSub: about as AboutSub,
+    };
+  }
+  const tab = params.get("tab");
+  if (tab && (GUILD_SUBS as readonly string[]).includes(tab)) {
+    return {
+      topPage: "guild",
+      guildSub: tab as GuildSub,
+      aboutSub: "system",
+    };
+  }
+  return { topPage: "guild", guildSub: "map", aboutSub: "system" };
+}
+
+function urlFromNav(nav: NavState): string {
+  if (typeof window === "undefined") return "/";
+  const params = new URLSearchParams(window.location.search);
+  params.delete("tab");
+  params.delete("about");
+  if (nav.topPage === "about") {
+    params.set("about", nav.aboutSub);
+  } else {
+    // Only add ?tab= for non-default subs so the "home" URL stays clean.
+    if (nav.guildSub !== "map") params.set("tab", nav.guildSub);
+  }
+  const q = params.toString();
+  return q ? `${window.location.pathname}?${q}` : window.location.pathname;
 }
 
 function App() {
-  const [topPage, setTopPage] = useState<TopPage>("guild");
-  const [guildSub, setGuildSub] = useState<GuildSub>(initialGuildSubFromUrl);
-  const [aboutSub, setAboutSub] = useState<AboutSub>("system");
+  const initialNav = navFromUrl();
+  const [topPage, setTopPage] = useState<TopPage>(initialNav.topPage);
+  const [guildSub, setGuildSub] = useState<GuildSub>(initialNav.guildSub);
+  const [aboutSub, setAboutSub] = useState<AboutSub>(initialNav.aboutSub);
+
+  // Sync nav state → URL. Only pushes a new history entry when the URL
+  // actually needs to change (skips no-op syncs, including the one that
+  // fires right after popstate updates state to match the new URL).
+  useEffect(() => {
+    const nextUrl = urlFromNav({ topPage, guildSub, aboutSub });
+    const currentUrl = window.location.pathname + window.location.search;
+    if (currentUrl === nextUrl) return;
+    window.history.pushState(null, "", nextUrl);
+  }, [topPage, guildSub, aboutSub]);
+
+  // Sync URL → nav state when the user hits back/forward.
+  useEffect(() => {
+    const onPop = () => {
+      const nav = navFromUrl();
+      setTopPage(nav.topPage);
+      setGuildSub(nav.guildSub);
+      setAboutSub(nav.aboutSub);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   const hexes = useHexData();
   const quests = useQuests();
   const initiativeEntries = useInitiative();

@@ -36,6 +36,7 @@ export interface PurchasedItem {
   itemName: string;
   rarity: string;
   price: string;
+  description: string;
   buyer: string | null;
   purchasedAt: string;
 }
@@ -577,6 +578,7 @@ export async function fetchShopPurchases(): Promise<PurchasedItem[]> {
     itemName: row.item_name,
     rarity: row.rarity,
     price: row.price ?? "",
+    description: row.description ?? "",
     buyer: row.buyer,
     purchasedAt: row.purchased_at,
   }));

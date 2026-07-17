@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchShopPurchases } from "../services/shop";
 import type { PurchasedItem } from "../services/shop";
+import { PurchasedItemCard } from "./PurchasedItemCard";
 import type { Character } from "../types";
 
 interface MyItemsProps {
@@ -9,14 +10,6 @@ interface MyItemsProps {
   onSetPlayerName: () => void;
   onOpenCharacter: () => void;
 }
-
-const RARITY_COLORS: Record<string, string> = {
-  common: "#9ca3af",
-  uncommon: "#4ade80",
-  rare: "#60a5fa",
-  "very rare": "#a855f7",
-  legendary: "#fbbf24",
-};
 
 export function MyItems({
   playerName,
@@ -170,53 +163,10 @@ export function MyItems({
               You haven't bought anything yet.
             </div>
           ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  fontSize: 13,
-                }}
-              >
-                <thead>
-                  <tr>
-                    <th style={th}>Item</th>
-                    <th style={th}>Rarity</th>
-                    <th style={th}>Price</th>
-                    <th style={th}>When</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {myPurchases.map((p) => (
-                    <tr key={p.id}>
-                      <td style={{ ...td, color: "#e8e8f0", fontWeight: 500 }}>
-                        {p.itemName}
-                      </td>
-                      <td
-                        style={{
-                          ...td,
-                          color:
-                            RARITY_COLORS[p.rarity.toLowerCase()] ?? "#d1d5db",
-                          textTransform: "capitalize",
-                        }}
-                      >
-                        {p.rarity}
-                      </td>
-                      <td style={{ ...td, color: "#fbbf24" }}>
-                        {p.price || "—"}
-                      </td>
-                      <td style={{ ...td, color: "#9ca3af", fontSize: 12 }}>
-                        {new Date(p.purchasedAt).toLocaleString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {myPurchases.map((p) => (
+                <PurchasedItemCard key={p.id} item={p} />
+              ))}
             </div>
           )}
         </>
@@ -287,19 +237,3 @@ function PurseCard({
   );
 }
 
-const th: React.CSSProperties = {
-  textAlign: "left",
-  padding: "8px 12px",
-  borderBottom: "2px solid #2e2e4a",
-  color: "#9ca3af",
-  fontWeight: 600,
-  fontSize: 12,
-  textTransform: "uppercase",
-  letterSpacing: "0.5px",
-};
-
-const td: React.CSSProperties = {
-  padding: "8px 12px",
-  borderBottom: "1px solid #1e1e36",
-  color: "#d1d5db",
-};
