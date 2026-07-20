@@ -1,5 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { fetchShopPurchases } from "../services/shop";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  disposePurchase,
+  fetchShopPurchases,
+  sellPurchase,
+} from "../services/shop";
 import type { PurchasedItem } from "../services/shop";
 import { PurchasedItemCard } from "./PurchasedItemCard";
 import type { Character, Quest } from "../types";
@@ -21,6 +25,12 @@ export function MyItems({
 }: MyItemsProps) {
   const [purchases, setPurchases] = useState<PurchasedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    const data = await fetchShopPurchases();
+    setPurchases(data);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -37,6 +47,51 @@ export function MyItems({
       alive = false;
     };
   }, []);
+
+  const handleSell = useCallback(
+    async (item: PurchasedItem) => {
+      if (!playerName || busyId) return;
+      const credit = Math.floor(
+        (parseInt((item.price ?? "").replace(/[^0-9]/g, ""), 10) || 0) * 0.75
+      );
+      if (
+        !window.confirm(
+          `Sell "${item.itemName}" for ${credit.toLocaleString()} gp?`
+        )
+      ) {
+        return;
+      }
+      setBusyId(item.id);
+      try {
+        await sellPurchase(item.id, playerName);
+        await reload();
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Sell failed");
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [playerName, busyId, reload]
+  );
+
+  const handleDispose = useCallback(
+    async (item: PurchasedItem) => {
+      if (!playerName || busyId) return;
+      if (!window.confirm(`Dispose of "${item.itemName}"? No gold is returned.`)) {
+        return;
+      }
+      setBusyId(item.id);
+      try {
+        await disposePurchase(item.id, playerName);
+        await reload();
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "Dispose failed");
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [playerName, busyId, reload]
+  );
 
   const myPurchases = useMemo(
     () => (playerName ? purchases.filter((p) => p.buyer === playerName) : []),
@@ -268,7 +323,12 @@ export function MyItems({
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {myPurchases.map((p) => (
-                <PurchasedItemCard key={p.id} item={p} />
+                <PurchasedItemCard
+                  key={p.id}
+                  item={p}
+                  onSell={() => handleSell(p)}
+                  onDispose={() => handleDispose(p)}
+                />
               ))}
             </div>
           )}

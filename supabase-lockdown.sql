@@ -122,3 +122,56 @@ drop policy if exists "Restock settings readable" on shop_restock_settings;
 create policy "Restock settings readable" on shop_restock_settings
   for select using (true);
 -- No writes for anon.
+
+-- ============ shop_purchases: player sell / dispose ============
+-- RPC: a player sells one of their purchased items back for 75% of its gp
+-- price. Credits the buyer's character gold and removes the purchase.
+-- Returns the gp credited. Only the item's owner may sell it.
+create or replace function sell_purchase(p_id uuid, p_player text)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_price text;
+  v_buyer text;
+  v_value int;
+  v_credit int;
+begin
+  select price, buyer into v_price, v_buyer from shop_purchases where id = p_id;
+  if v_buyer is null or v_buyer <> p_player then
+    return 0;
+  end if;
+
+  -- Parse the numeric gp value out of the price string ("1,200 gp" -> 1200);
+  -- non-numeric prices ("Priceless", "—") sell for 0.
+  v_value := coalesce(nullif(regexp_replace(coalesce(v_price, ''), '[^0-9]', '', 'g'), '')::int, 0);
+  v_credit := floor(v_value * 0.75);
+
+  update characters set gold = gold + v_credit where player_name = p_player;
+  delete from shop_purchases where id = p_id;
+  return v_credit;
+end;
+$$;
+grant execute on function sell_purchase(uuid, text) to anon, authenticated;
+
+-- RPC: a player disposes of one of their purchased items (no gold back).
+-- Only the item's owner may dispose it.
+create or replace function dispose_purchase(p_id uuid, p_player text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_buyer text;
+begin
+  select buyer into v_buyer from shop_purchases where id = p_id;
+  if v_buyer is null or v_buyer <> p_player then
+    return;
+  end if;
+  delete from shop_purchases where id = p_id;
+end;
+$$;
+grant execute on function dispose_purchase(uuid, text) to anon, authenticated;

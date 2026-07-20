@@ -83,11 +83,15 @@ export function QuestCard({
   const [expanded, setExpanded] = useState(defaultExpanded);
   const levelColor = QUEST_LEVEL_COLORS[quest.level];
   const hasJoined = playerName ? quest.players.includes(playerName) : false;
-  const canJoin = !hasJoined && quest.status !== "completed";
+  // A closed quest (completed or paid out) is done — join/leave/set-active
+  // are all hidden. Paid-out quests render exactly like completed ones.
+  const isClosed =
+    quest.status === "completed" || quest.status === "paid_out";
+  const canJoin = !hasJoined && !isClosed;
   // Party members can start the session; hidden once it's already active
-  // or completed.
+  // or closed.
   const canSetActive =
-    hasJoined && quest.status !== "in_progress" && quest.status !== "completed";
+    hasJoined && quest.status !== "in_progress" && !isClosed;
   // Compact-collapsed hides everything except title/level/status.
   const showBrief = !compact || expanded;
 
@@ -145,7 +149,7 @@ export function QuestCard({
           Set Active
         </button>
       )}
-      {hasJoined && quest.status !== "completed" && (
+      {hasJoined && !isClosed && (
         <button
           className="qc-btn qc-btn--leave"
           onClick={() => onLeave(quest.id)}

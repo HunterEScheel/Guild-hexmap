@@ -5,6 +5,10 @@ interface PurchasedItemCardProps {
   item: PurchasedItem;
   /** Show the buyer's name inline (used on the admin Purchased Items tab). */
   showBuyer?: boolean;
+  /** Owner-only. Sell the item back for 75% of its value. */
+  onSell?: () => void;
+  /** Owner-only. Dispose of the item (no gold back). */
+  onDispose?: () => void;
 }
 
 const RARITY_COLORS: Record<string, string> = {
@@ -15,12 +19,23 @@ const RARITY_COLORS: Record<string, string> = {
   legendary: "#fbbf24",
 };
 
+/** Parse the numeric gp value from a price string ("1,200 gp" -> 1200). */
+export function parsePriceValue(price: string): number {
+  const digits = (price ?? "").replace(/[^0-9]/g, "");
+  const n = parseInt(digits, 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export function PurchasedItemCard({
   item,
   showBuyer = false,
+  onSell,
+  onDispose,
 }: PurchasedItemCardProps) {
   const [open, setOpen] = useState(false);
   const rarityColor = RARITY_COLORS[item.rarity.toLowerCase()] ?? "#9ca3af";
+  const sellValue = Math.floor(parsePriceValue(item.price) * 0.75);
+  const showActions = Boolean(onSell || onDispose);
   const when = new Date(item.purchasedAt).toLocaleString(undefined, {
     month: "short",
     day: "numeric",
@@ -172,6 +187,51 @@ export function PurchasedItemCard({
               <span style={{ color: "#6b7280", fontStyle: "italic" }}>
                 No description on file.
               </span>
+            )}
+
+            {showActions && (
+              <div
+                style={{ display: "flex", gap: 8, marginTop: 12 }}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                {onSell && (
+                  <button
+                    onClick={onSell}
+                    title="Sell back for 75% of value"
+                    style={{
+                      background: "#fbbf24",
+                      color: "#0a0a0a",
+                      border: "none",
+                      borderRadius: 4,
+                      padding: "5px 14px",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Sell ({sellValue.toLocaleString()} gp)
+                  </button>
+                )}
+                {onDispose && (
+                  <button
+                    onClick={onDispose}
+                    title="Discard this item (no gold back)"
+                    style={{
+                      background: "#7f1d1d",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 4,
+                      padding: "5px 14px",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Dispose
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>

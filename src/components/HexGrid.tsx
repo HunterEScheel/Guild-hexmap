@@ -367,7 +367,9 @@ export function HexGrid({
 
   // Group quests by start hex so multiple quests sharing a starting hex
   // fan out into visible side-by-side pins instead of stacking invisibly.
-  const activeQuests = quests.filter((q) => q.status !== "completed");
+  const activeQuests = quests.filter(
+    (q) => q.status !== "completed" && q.status !== "paid_out"
+  );
   const questsByStart = new Map<string, Quest[]>();
   for (const q of activeQuests) {
     const k = `${q.hexCol}_${q.hexRow}`;

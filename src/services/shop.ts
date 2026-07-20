@@ -593,6 +593,34 @@ export async function purchaseEquipment(
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Sell a purchased item back for 75% of its gp value. Credits the owner's
+ * character gold and removes the item. Returns the gp credited.
+ */
+export async function sellPurchase(
+  id: string,
+  player: string
+): Promise<number> {
+  const { data, error } = await supabase.rpc("sell_purchase", {
+    p_id: id,
+    p_player: player,
+  });
+  if (error) throw new Error(`sell_purchase failed: ${error.message}`);
+  return Number(data) || 0;
+}
+
+/** Dispose of a purchased item (removes it, no gold back). */
+export async function disposePurchase(
+  id: string,
+  player: string
+): Promise<void> {
+  const { error } = await supabase.rpc("dispose_purchase", {
+    p_id: id,
+    p_player: player,
+  });
+  if (error) throw new Error(`dispose_purchase failed: ${error.message}`);
+}
+
 export async function fetchShopPurchases(): Promise<PurchasedItem[]> {
   const { data, error } = await supabase
     .from("shop_purchases")
