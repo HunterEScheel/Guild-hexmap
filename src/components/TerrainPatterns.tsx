@@ -69,24 +69,22 @@ export function TerrainPatterns() {
         ))}
       </pattern>
 
-      {/* PLAINS — grass tufts */}
+      {/* PLAINS — small grass tufts */}
       <pattern
         id="terrain-plains"
         patternUnits="userSpaceOnUse"
-        width={20}
-        height={20}
+        width={11}
+        height={11}
       >
-        <rect width={20} height={20} fill={C.plains} />
+        <rect width={11} height={11} fill={C.plains} />
         {[
-          { x: 4, y: 9 },
-          { x: 13, y: 14 },
-          { x: 9, y: 19 },
-          { x: 18, y: 6 },
+          { x: 3, y: 5 },
+          { x: 8, y: 9 },
         ].map((t, i) => (
-          <g key={i} stroke={shade(C.plains, -28)} strokeWidth={0.9} fill="none">
-            <path d={`M${t.x} ${t.y} q -1.5 -3 -2.5 -4.5`} />
-            <path d={`M${t.x} ${t.y} q 0 -3.5 0 -5`} />
-            <path d={`M${t.x} ${t.y} q 1.5 -3 2.5 -4.5`} />
+          <g key={i} stroke={shade(C.plains, -26)} strokeWidth={0.55} fill="none">
+            <path d={`M${t.x} ${t.y} q -0.8 -1.6 -1.4 -2.5`} />
+            <path d={`M${t.x} ${t.y} q 0 -1.9 0 -2.8`} />
+            <path d={`M${t.x} ${t.y} q 0.8 -1.6 1.4 -2.5`} />
           </g>
         ))}
       </pattern>
