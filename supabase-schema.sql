@@ -95,6 +95,10 @@ on conflict (rarity) do nothing;
 -- Migration: Add Discord message id to quests
 -- alter table quests add column if not exists discord_message_id text;
 
+-- Migration: Add found-items loot list to quests (admin-attached custom items,
+-- each optionally assigned to a party member).
+-- alter table quests add column if not exists found_items jsonb default '[]'::jsonb;
+
 -- Quests table
 create table where not exists quests (
   id uuid default gen_random_uuid() primary key,

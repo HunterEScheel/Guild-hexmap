@@ -65,10 +65,41 @@ const VALID_QUEST_LEVELS = [
   "terrasque",
   "god",
 ];
-const VALID_QUEST_STATUSES = ["available", "in_progress", "completed"];
+const VALID_QUEST_STATUSES = [
+  "available",
+  "in_progress",
+  "completed",
+  "paid_out",
+];
+
+// Payout multipliers an admin may apply to a quest's gp reward.
+const ALLOWED_PAYOUT_MULTIPLIERS = [5, 4, 3, 2, 1, 0.5, 0.25];
 
 function jsonResponse(status, payload) {
   return new Response(JSON.stringify(payload), { status, headers: JSON_CORS });
+}
+
+// Normalize a quest's found-items loot list: clamp lengths, coerce the gp
+// value to a non-negative integer, and drop unnamed entries. Items keep any
+// client-supplied id (or get a fresh one) and an optional assignee name.
+function sanitizeFoundItems(raw) {
+  const list = Array.isArray(raw) ? raw : [];
+  return list
+    .slice(0, 100)
+    .map((it) => {
+      const value = Number(it?.value);
+      return {
+        id: String(it?.id ?? crypto.randomUUID()),
+        name: String(it?.name ?? "").trim().slice(0, 120),
+        description: String(it?.description ?? "").slice(0, 1000),
+        value: Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0,
+        assignedTo:
+          it?.assignedTo == null || it.assignedTo === ""
+            ? null
+            : String(it.assignedTo).slice(0, 80),
+      };
+    })
+    .filter((it) => it.name !== "");
 }
 
 const ok = (extra = {}) => jsonResponse(200, { ok: true, ...extra });
@@ -255,6 +286,7 @@ Deno.serve(async (req) => {
               : null,
           players: Array.isArray(q.players) ? q.players : [],
           scheduled_date: q.scheduledDate ?? null,
+          found_items: sanitizeFoundItems(q.foundItems),
         };
         const { error } = await supa.from("quests").insert(insert);
         if (error) return serverError(error.message);
@@ -336,6 +368,109 @@ Deno.serve(async (req) => {
         const { error } = await supa.from("quests").delete().eq("id", id);
         if (error) return serverError(error.message);
         return ok();
+      }
+
+      case "pay_out_quest": {
+        const id = String(payload.id ?? "");
+        if (!id) return badRequest("quest id required");
+
+        const multiplier = Number(payload.multiplier);
+        if (!ALLOWED_PAYOUT_MULTIPLIERS.includes(multiplier)) {
+          return badRequest("invalid payout multiplier");
+        }
+        const beastBonus =
+          payload.beastBonus == null ? 0 : Number(payload.beastBonus);
+        if (!Number.isFinite(beastBonus) || beastBonus < 0) {
+          return badRequest("beastBonus must be a number >= 0");
+        }
+
+        const { data: quest, error: qErr } = await supa
+          .from("quests")
+          .select("id, reward, players, status")
+          .eq("id", id)
+          .maybeSingle();
+        if (qErr) return serverError(qErr.message);
+        if (!quest) return badRequest("quest not found");
+        if (quest.status === "paid_out") {
+          return badRequest("quest already paid out");
+        }
+
+        const players = Array.isArray(quest.players)
+          ? quest.players.map((p: unknown) => String(p))
+          : [];
+        if (players.length === 0) {
+          return badRequest("quest has no party to pay");
+        }
+
+        // Reward is a gp number string; non-numeric legacy values pay a
+        // 0 base (the beast bonus can still apply).
+        const rewardNum = Number(
+          String(quest.reward ?? "")
+            .replace(/\s*gp\s*$/i, "")
+            .trim()
+        );
+        const baseReward =
+          Number.isFinite(rewardNum) && rewardNum > 0 ? rewardNum : 0;
+
+        // (reward × multiplier) + beast bonus, split evenly. Any leftover
+        // gp from an uneven split goes to the first players in the party.
+        const total = Math.round(baseReward * multiplier) + Math.round(beastBonus);
+        const n = players.length;
+        const perPlayer = Math.floor(total / n);
+        const remainder = total - perPlayer * n;
+        const shares = players.map((_, i) => perPlayer + (i < remainder ? 1 : 0));
+
+        // Only players with a character row can hold gold; others are
+        // reported back as skipped so the admin knows to create them.
+        const { data: chars, error: cErr } = await supa
+          .from("characters")
+          .select("player_name, gold")
+          .in("player_name", players);
+        if (cErr) return serverError(cErr.message);
+        const goldByName = new Map(
+          (chars ?? []).map((c: { player_name: string; gold: number }) => [
+            c.player_name,
+            Number(c.gold) || 0,
+          ])
+        );
+
+        const paid: { player: string; amount: number }[] = [];
+        const skipped: { player: string; amount: number }[] = [];
+        for (let i = 0; i < players.length; i++) {
+          const name = players[i];
+          const share = shares[i];
+          if (!goldByName.has(name)) {
+            skipped.push({ player: name, amount: share });
+            continue;
+          }
+          const newGold = (goldByName.get(name) as number) + share;
+          const { error: uErr } = await supa
+            .from("characters")
+            .update({ gold: newGold })
+            .eq("player_name", name);
+          if (uErr) return serverError(uErr.message);
+          paid.push({ player: name, amount: share });
+        }
+
+        const { error: sErr } = await supa
+          .from("quests")
+          .update({ status: "paid_out" })
+          .eq("id", id);
+        if (sErr) return serverError(sErr.message);
+
+        return ok({ total, perPlayer, paid, skipped });
+      }
+
+      case "set_quest_found_items": {
+        const id = String(payload.id ?? "");
+        if (!id) return badRequest("quest id required");
+        const items = sanitizeFoundItems(payload.items);
+        const { error } = await supa
+          .from("quests")
+          .update({ found_items: items })
+          .eq("id", id);
+        if (error) return serverError(error.message);
+        return ok({ items });
       }
 
       // -------- Initiative tracker --------

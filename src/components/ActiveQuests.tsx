@@ -16,6 +16,8 @@ interface ActiveQuestsProps {
   onEditQuest: (quest: Quest) => void;
   onDeleteQuest: (questId: string) => void;
   onSetQuestActive: (questId: string) => void;
+  onPayOutQuest: (quest: Quest) => void;
+  onManageFoundItems: (quest: Quest) => void;
   onSetPlayerName: () => void;
 }
 
@@ -31,6 +33,8 @@ export function ActiveQuests({
   onEditQuest,
   onDeleteQuest,
   onSetQuestActive,
+  onPayOutQuest,
+  onManageFoundItems,
   onSetPlayerName,
 }: ActiveQuestsProps) {
   const [showCompleted, setShowCompleted] = useState(false);
@@ -60,7 +64,7 @@ export function ActiveQuests({
     const completed: Quest[] = [];
 
     for (const quest of quests) {
-      if (quest.status === "completed") {
+      if (quest.status === "completed" || quest.status === "paid_out") {
         completed.push(quest);
       } else if (quest.status === "in_progress") {
         inProgress.push(quest);
@@ -199,6 +203,8 @@ export function ActiveQuests({
             onEdit={onEditQuest}
             onDelete={onDeleteQuest}
             onSetActive={onSetQuestActive}
+            onPayOut={onPayOutQuest}
+            onManageFoundItems={onManageFoundItems}
             accentColor="#facc15"
           />
           <QuestSection
@@ -211,6 +217,8 @@ export function ActiveQuests({
             onEdit={onEditQuest}
             onDelete={onDeleteQuest}
             onSetActive={onSetQuestActive}
+            onPayOut={onPayOutQuest}
+            onManageFoundItems={onManageFoundItems}
             accentColor="#60a5fa"
           />
         </>
@@ -252,6 +260,8 @@ export function ActiveQuests({
             onEdit={onEditQuest}
             onDelete={onDeleteQuest}
             onSetActive={onSetQuestActive}
+            onPayOut={onPayOutQuest}
+            onManageFoundItems={onManageFoundItems}
             accentColor="#4ade80"
             renderExpandedExtras={(quest) => (
               <QuestFindings
@@ -282,6 +292,8 @@ function QuestSection({
   onEdit,
   onDelete,
   onSetActive,
+  onPayOut,
+  onManageFoundItems,
   accentColor,
   renderExpandedExtras,
 }: {
@@ -294,6 +306,8 @@ function QuestSection({
   onEdit: (quest: Quest) => void;
   onDelete: (questId: string) => void;
   onSetActive: (questId: string) => void;
+  onPayOut: (quest: Quest) => void;
+  onManageFoundItems: (quest: Quest) => void;
   accentColor: string;
   renderExpandedExtras?: (quest: Quest) => React.ReactNode;
 }) {
@@ -355,6 +369,8 @@ function QuestSection({
               onEdit={onEdit}
               onDelete={onDelete}
               onSetActive={onSetActive}
+              onPayOut={onPayOut}
+              onManageFoundItems={onManageFoundItems}
               expandedExtras={
                 renderExpandedExtras ? renderExpandedExtras(quest) : undefined
               }

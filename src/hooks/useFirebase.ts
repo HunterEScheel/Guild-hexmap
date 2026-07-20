@@ -3,6 +3,7 @@ import { supabase } from "../supabase";
 import type {
   ChallengeTier,
   Character,
+  FoundItem,
   HexData,
   Quest,
   TerrainType,
@@ -147,6 +148,9 @@ function mapQuest(row: Record<string, unknown>): Quest {
     players: (row.players as string[]) ?? [],
     scheduledDate: (row.scheduled_date as string) ?? null,
     completedAt: (row.completed_at as string) ?? null,
+    foundItems: Array.isArray(row.found_items)
+      ? (row.found_items as FoundItem[])
+      : [],
   };
 }
 
@@ -265,6 +269,56 @@ export async function updateQuest(
 export async function deleteQuest(pin: string, id: string): Promise<void> {
   // delete_quest action handles the Discord message deletion server-side.
   await callAdminAction(pin, "delete_quest", { id });
+}
+
+/**
+ * Admin-only. Replaces a quest's entire found-items loot list. The list is
+ * the single source of truth: assigned items surface in the assignee's
+ * "My Items" (derived from the live quests), so reassigning never desyncs.
+ */
+export async function setQuestFoundItems(
+  pin: string,
+  questId: string,
+  items: FoundItem[]
+): Promise<void> {
+  await callAdminAction(pin, "set_quest_found_items", { id: questId, items });
+  syncQuestToDiscord(questId);
+}
+
+export interface PayoutResult {
+  /** Total gp paid out across the party (reward × multiplier + beast bonus). */
+  total: number;
+  /** Even per-player share (before uneven-split remainder). */
+  perPlayer: number;
+  /** Players who received gold, with their exact share. */
+  paid: { player: string; amount: number }[];
+  /** Party members with no character row — gold could not be credited. */
+  skipped: { player: string; amount: number }[];
+}
+
+/**
+ * Admin-only. Pays out a quest: multiplies its gp reward by `multiplier`,
+ * adds the flat `beastBonus`, splits the sum evenly among the party, credits
+ * each player's character gold, and flips the quest to "paid_out". All
+ * computation happens server-side in the admin-action Edge Function.
+ */
+export async function payOutQuest(
+  pin: string,
+  questId: string,
+  multiplier: number,
+  beastBonus: number
+): Promise<PayoutResult> {
+  const data = await callAdminAction(pin, "pay_out_quest", {
+    id: questId,
+    multiplier,
+    beastBonus,
+  });
+  return {
+    total: Number(data.total) || 0,
+    perPlayer: Number(data.perPlayer) || 0,
+    paid: (data.paid as PayoutResult["paid"]) ?? [],
+    skipped: (data.skipped as PayoutResult["skipped"]) ?? [],
+  };
 }
 
 export async function joinQuest(

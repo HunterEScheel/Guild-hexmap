@@ -198,6 +198,7 @@ h1, h2, h3 {
 .qc-status--available   { color: #60a5fa; }
 .qc-status--in_progress { color: #facc15; }
 .qc-status--completed   { color: #4ade80; }
+.qc-status--paid_out    { color: #fbbf24; }
 
 .qc-peek-item {
   display: inline-flex;
@@ -307,6 +308,8 @@ h1, h2, h3 {
 .qc-btn--leave  { background: #ef4444; color: #fff; }
 .qc-btn--edit   { background: #6366f1; color: #fff; }
 .qc-btn--delete { background: #7f1d1d; color: #fff; }
+.qc-btn--payout { background: #fbbf24; color: #0a0a0a; }
+.qc-btn--items  { background: #a78bfa; color: #0a0a0a; }
 
 /* ======================================================================
    Quest Findings — Cartographer's Field Journal

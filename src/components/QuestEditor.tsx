@@ -18,6 +18,7 @@ const STATUS_LABELS: Record<QuestStatus, string> = {
   available: "Available",
   in_progress: "In Progress",
   completed: "Completed",
+  paid_out: "Paid Out",
 };
 
 interface QuestEditorProps {
@@ -65,6 +66,7 @@ export function QuestEditor({
       players: quest?.players ?? [],
       scheduledDate: quest?.scheduledDate ?? null,
       completedAt: quest?.completedAt ?? null,
+      foundItems: quest?.foundItems ?? [],
     });
   };
 

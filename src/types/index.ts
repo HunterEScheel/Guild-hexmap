@@ -17,7 +17,11 @@ export type QuestLevel =
   | "terrasque"
   | "god";
 
-export type QuestStatus = "available" | "in_progress" | "completed";
+export type QuestStatus =
+  | "available"
+  | "in_progress"
+  | "completed"
+  | "paid_out";
 
 export type ChallengeTier = 0 | 1 | 2 | 3 | 4;
 
@@ -50,6 +54,20 @@ export interface InitiativeEntry {
   cr: number | null;
 }
 
+/**
+ * A custom item an admin attaches to a quest as loot. Each item may be
+ * assigned to a party member (assignedTo = player name) or left unassigned
+ * (null). Assigned items surface in that player's "My Items" inventory.
+ */
+export interface FoundItem {
+  id: string;
+  name: string;
+  description: string;
+  /** Gold-piece value of the item. */
+  value: number;
+  assignedTo: string | null;
+}
+
 export interface Quest {
   id: string;
   title: string;
@@ -64,6 +82,7 @@ export interface Quest {
   players: string[];
   scheduledDate: string | null;
   completedAt: string | null;
+  foundItems: FoundItem[];
 }
 
 export interface Character {

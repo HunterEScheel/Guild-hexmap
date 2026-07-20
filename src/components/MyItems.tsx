@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchShopPurchases } from "../services/shop";
 import type { PurchasedItem } from "../services/shop";
 import { PurchasedItemCard } from "./PurchasedItemCard";
-import type { Character } from "../types";
+import type { Character, Quest } from "../types";
 
 interface MyItemsProps {
   playerName: string | null;
   character: Character | undefined;
+  quests: Quest[];
   onSetPlayerName: () => void;
   onOpenCharacter: () => void;
 }
@@ -14,6 +15,7 @@ interface MyItemsProps {
 export function MyItems({
   playerName,
   character,
+  quests,
   onSetPlayerName,
   onOpenCharacter,
 }: MyItemsProps) {
@@ -50,6 +52,27 @@ export function MyItems({
     }
     return total;
   }, [myPurchases]);
+
+  // Found items assigned to this player, gathered across all quests. The
+  // quests list is the single source of truth (see setQuestFoundItems).
+  const foundItems = useMemo(() => {
+    if (!playerName) return [];
+    const out: { id: string; name: string; description: string; value: number; questTitle: string }[] = [];
+    for (const q of quests) {
+      for (const it of q.foundItems) {
+        if (it.assignedTo === playerName) {
+          out.push({
+            id: it.id,
+            name: it.name,
+            description: it.description,
+            value: it.value,
+            questTitle: q.title,
+          });
+        }
+      }
+    }
+    return out;
+  }, [quests, playerName]);
 
   const gold = character?.gold ?? 0;
 
@@ -138,6 +161,86 @@ export function MyItems({
               accent="#4ade80"
             />
           </div>
+
+          {foundItems.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <h2
+                style={{
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: 18,
+                  color: "#a78bfa",
+                  margin: "0 0 12px",
+                }}
+              >
+                Quest Loot
+              </h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {foundItems.map((it) => (
+                  <div
+                    key={it.id}
+                    style={{
+                      background: "#1e1e36",
+                      border: "1px solid #2e2e4a",
+                      borderLeft: "3px solid #a78bfa",
+                      borderRadius: 6,
+                      padding: "10px 14px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "#e8e8f0",
+                          fontWeight: 600,
+                          fontSize: 14,
+                          flex: 1,
+                          minWidth: 0,
+                        }}
+                      >
+                        {it.name}
+                      </span>
+                      <span style={{ color: "#6b7280", fontSize: 11 }}>
+                        {it.questTitle}
+                      </span>
+                      {it.value > 0 && (
+                        <span
+                          style={{
+                            color: "#fbbf24",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {it.value.toLocaleString()} gp
+                        </span>
+                      )}
+                    </div>
+                    {it.description && (
+                      <div
+                        style={{
+                          marginTop: 8,
+                          paddingTop: 8,
+                          borderTop: "1px solid rgba(255,255,255,0.06)",
+                          color: "#d1d5db",
+                          fontSize: 13,
+                          lineHeight: 1.5,
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
+                        {it.description}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {loading ? (
             <div

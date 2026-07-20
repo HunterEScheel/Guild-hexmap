@@ -5,6 +5,8 @@ import { AdminToolbar } from "./components/AdminToolbar";
 import { AdminPinModal } from "./components/AdminPinModal";
 import { PlayerNameModal } from "./components/PlayerNameModal";
 import { QuestEditor } from "./components/QuestEditor";
+import { PayoutModal } from "./components/PayoutModal";
+import { FoundItemsModal } from "./components/FoundItemsModal";
 import { Legend } from "./components/Legend";
 import { BountyBoard } from "./components/BountyBoard";
 import { DatePickerModal } from "./components/DatePickerModal";
@@ -31,13 +33,21 @@ import {
   joinQuest,
   leaveQuest,
   setQuestActive,
+  payOutQuest,
+  setQuestFoundItems,
   addInitiativeEntry,
   clearInitiativeTracker,
 } from "./hooks/useFirebase";
 import { useAdminMode } from "./hooks/useAdminMode";
 import { useIsMobile } from "./hooks/useIsMobile";
 import type { GeneratedEncounter } from "./data/bestiary";
-import type { ChallengeTier, Landmark, Quest, TerrainType } from "./types";
+import type {
+  ChallengeTier,
+  FoundItem,
+  Landmark,
+  Quest,
+  TerrainType,
+} from "./types";
 import "./index.css";
 
 type TopPage = "guild" | "about";
@@ -182,6 +192,17 @@ function App() {
     hexCol: number;
     hexRow: number;
   }>({ isOpen: false, hexCol: 0, hexRow: 0 });
+
+  // Quest payout
+  const [payoutQuest, setPayoutQuest] = useState<Quest | null>(null);
+  const [payoutBusy, setPayoutBusy] = useState(false);
+
+  // Quest found-items editor. Track by id so the modal reflects the live
+  // quest (party changes, realtime updates) rather than a stale snapshot.
+  const [foundItemsQuestId, setFoundItemsQuestId] = useState<string | null>(
+    null
+  );
+  const [foundItemsBusy, setFoundItemsBusy] = useState(false);
 
   const handleHexSelect = useCallback(
     (col: number, row: number) => {
@@ -328,6 +349,68 @@ function App() {
     [adminPin, questEditor.quest]
   );
 
+  const handleOpenPayout = useCallback((quest: Quest) => {
+    setPayoutQuest(quest);
+  }, []);
+
+  const handlePayoutConfirm = useCallback(
+    async (multiplier: number, beastBonus: number) => {
+      if (!adminPin || !payoutQuest) return;
+      setPayoutBusy(true);
+      try {
+        const res = await payOutQuest(
+          adminPin,
+          payoutQuest.id,
+          multiplier,
+          beastBonus
+        );
+        const lines = res.paid
+          .map((p) => `${p.player}: +${p.amount.toLocaleString()} gp`)
+          .join("\n");
+        const skippedMsg = res.skipped.length
+          ? `\n\nSkipped (no character): ${res.skipped
+              .map((s) => s.player)
+              .join(", ")}`
+          : "";
+        alert(
+          `Paid out ${res.total.toLocaleString()} gp.\n\n${lines}${skippedMsg}`
+        );
+        setPayoutQuest(null);
+      } catch (err) {
+        console.error("payOutQuest failed:", err);
+        alert(
+          `Payout failed: ${err instanceof Error ? err.message : String(err)}`
+        );
+      } finally {
+        setPayoutBusy(false);
+      }
+    },
+    [adminPin, payoutQuest]
+  );
+
+  const handleOpenFoundItems = useCallback((quest: Quest) => {
+    setFoundItemsQuestId(quest.id);
+  }, []);
+
+  const handleFoundItemsSave = useCallback(
+    async (items: FoundItem[]) => {
+      if (!adminPin || !foundItemsQuestId) return;
+      setFoundItemsBusy(true);
+      try {
+        await setQuestFoundItems(adminPin, foundItemsQuestId, items);
+        setFoundItemsQuestId(null);
+      } catch (err) {
+        console.error("setQuestFoundItems failed:", err);
+        alert(
+          `Save failed: ${err instanceof Error ? err.message : String(err)}`
+        );
+      } finally {
+        setFoundItemsBusy(false);
+      }
+    },
+    [adminPin, foundItemsQuestId]
+  );
+
   const handleRunEncounter = useCallback(async (encounter: GeneratedEncounter) => {
     if (!adminPin) return;
     try {
@@ -363,6 +446,10 @@ function App() {
   const selectedHexData = selectedHex
     ? hexes.get(`${selectedHex.col}_${selectedHex.row}`)
     : undefined;
+
+  const foundItemsQuest = foundItemsQuestId
+    ? quests.find((q) => q.id === foundItemsQuestId) ?? null
+    : null;
 
   const questBadge = quests.filter(
     (q) =>
@@ -547,6 +634,8 @@ function App() {
             onEditQuest={handleEditQuest}
             onDeleteQuest={handleDeleteQuest}
             onSetQuestActive={handleSetQuestActive}
+            onPayOutQuest={handleOpenPayout}
+            onManageFoundItems={handleOpenFoundItems}
             onSetPlayerName={() => setShowNameModal(true)}
           />
         </div>
@@ -573,6 +662,7 @@ function App() {
           <MyItems
             playerName={playerName}
             character={playerName ? characters.get(playerName) : undefined}
+            quests={quests}
             onSetPlayerName={() => setShowNameModal(true)}
             onOpenCharacter={() => {
               if (!playerName) {
@@ -705,6 +795,25 @@ function App() {
           onCancel={() =>
             setQuestEditor({ isOpen: false, hexCol: 0, hexRow: 0 })
           }
+        />
+      )}
+
+      {payoutQuest && (
+        <PayoutModal
+          quest={payoutQuest}
+          charactersWithGold={new Set(characters.keys())}
+          onConfirm={handlePayoutConfirm}
+          onCancel={() => setPayoutQuest(null)}
+          busy={payoutBusy}
+        />
+      )}
+
+      {foundItemsQuest && (
+        <FoundItemsModal
+          quest={foundItemsQuest}
+          onSave={handleFoundItemsSave}
+          onCancel={() => setFoundItemsQuestId(null)}
+          busy={foundItemsBusy}
         />
       )}
     </div>

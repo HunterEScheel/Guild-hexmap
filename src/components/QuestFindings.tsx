@@ -372,6 +372,7 @@ function SuggestionsPanel({
         players: [],
         scheduledDate: null,
         completedAt: null,
+        foundItems: [],
       });
       setCreated((prev) => new Set(prev).add(i));
     } finally {

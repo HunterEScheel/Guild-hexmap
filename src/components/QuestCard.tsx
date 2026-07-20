@@ -13,6 +13,16 @@ interface QuestCardProps {
   onDelete: (questId: string) => void;
   onSetActive: (questId: string) => void;
   /**
+   * Admin-only. Opens the payout dialog for this quest. When omitted (e.g.
+   * in the SidePanel), the Pay Out button is hidden.
+   */
+  onPayOut?: (quest: Quest) => void;
+  /**
+   * Admin-only. Opens the found-items editor for this quest. When omitted,
+   * the Found Items button is hidden.
+   */
+  onManageFoundItems?: (quest: Quest) => void;
+  /**
    * Optional content rendered inside the expanded section, below the party
    * list. ActiveQuests uses this to inject the QuestFindings panel for
    * completed quests.
@@ -32,6 +42,7 @@ const STATUS_LABELS: Record<string, string> = {
   available: "Available",
   in_progress: "In Progress",
   completed: "Completed",
+  paid_out: "Paid Out",
 };
 
 function formatScheduled(iso: string, verbose: boolean): string {
@@ -63,6 +74,8 @@ export function QuestCard({
   onEdit,
   onDelete,
   onSetActive,
+  onPayOut,
+  onManageFoundItems,
   expandedExtras,
   defaultExpanded = false,
   compact = false,
@@ -142,6 +155,24 @@ export function QuestCard({
       )}
       {isAdmin && (
         <>
+          {onManageFoundItems && (
+            <button
+              className="qc-btn qc-btn--items"
+              onClick={() => onManageFoundItems(quest)}
+              title="Attach found items and assign them to players"
+            >
+              Found Items
+            </button>
+          )}
+          {onPayOut && quest.status !== "paid_out" && (
+            <button
+              className="qc-btn qc-btn--payout"
+              onClick={() => onPayOut(quest)}
+              title="Pay out gold to the party"
+            >
+              Pay Out
+            </button>
+          )}
           <button
             className="qc-btn qc-btn--edit"
             onClick={() => onEdit(quest)}
@@ -241,6 +272,38 @@ export function QuestCard({
               {quest.players.length > 0 ? quest.players.join(", ") : "—"}
             </span>
           </div>
+
+          {quest.foundItems.length > 0 && (
+            <div className="qc-field" style={{ alignItems: "flex-start" }}>
+              <span className="qc-field-label">Found</span>
+              <span className="qc-field-value">
+                <span
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 4,
+                  }}
+                >
+                  {quest.foundItems.map((it) => (
+                    <span
+                      key={it.id}
+                      style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
+                    >
+                      <span style={{ color: "#e8e8f0" }}>{it.name}</span>
+                      {it.value > 0 && (
+                        <span style={{ color: "#fbbf24" }}>
+                          ({it.value.toLocaleString()} gp)
+                        </span>
+                      )}
+                      <span style={{ color: "#6b7280" }}>
+                        {it.assignedTo ? `→ ${it.assignedTo}` : "→ unassigned"}
+                      </span>
+                    </span>
+                  ))}
+                </span>
+              </span>
+            </div>
+          )}
 
           {expandedExtras}
 
