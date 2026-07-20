@@ -1,4 +1,3 @@
-import type { TerrainType } from "../types";
 import { TERRAIN_COLORS } from "../utils/colors";
 
 /**
