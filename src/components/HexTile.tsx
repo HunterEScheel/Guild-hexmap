@@ -1,5 +1,4 @@
 import { hexPointsString } from "../utils/hexMath";
-import { TERRAIN_COLORS } from "../utils/colors";
 import type { TerrainType } from "../types";
 
 interface HexTileProps {
@@ -11,12 +10,11 @@ interface HexTileProps {
 
 export function HexTile({ col, row, terrain, onClick }: HexTileProps) {
   const points = hexPointsString(col, row);
-  const fillColor = TERRAIN_COLORS[terrain];
 
   return (
     <polygon
       points={points}
-      fill={fillColor}
+      fill={`url(#terrain-${terrain})`}
       stroke="#1a1a2e"
       strokeWidth={1}
       className="hex-hover"
