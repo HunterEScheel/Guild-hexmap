@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { HexTile } from "./HexTile";
+import { TerrainPatterns } from "./TerrainPatterns";
 import { LandmarkIcon } from "./LandmarkIcon";
 import { useGridSize } from "../hooks/useGridSize";
 import { hexToPixel, hexPointsString, HEX_SIZE } from "../utils/hexMath";
@@ -407,6 +408,7 @@ export function HexGrid({
         onPointerLeave={handlePointerUp}
         onClickCapture={handleClickCapture}
       >
+        <TerrainPatterns />
         <g>{fills}</g>
         <g>{landmarks}</g>
         <g>{landmarkNames}</g>

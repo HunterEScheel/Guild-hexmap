@@ -23,7 +23,7 @@ h1, h2, h3 {
 
 /* Hex hover effect */
 .hex-hover:hover {
-  fill: rgba(255, 255, 255, 0.08);
+  filter: brightness(1.15);
 }
 
 /* Erase-mode perimeter highlight */
