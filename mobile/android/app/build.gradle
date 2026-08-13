@@ -85,6 +85,11 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        // arm64 only — halves the APK for the website download (see
+        // reactNativeArchitectures in gradle.properties).
+        ndk {
+            abiFilters "arm64-v8a"
+        }
     }
     signingConfigs {
         debug {
