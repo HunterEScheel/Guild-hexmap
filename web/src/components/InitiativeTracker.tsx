@@ -177,21 +177,6 @@ export function InitiativeTracker({
         >
           Initiative Tracker
         </h1>
-        <a
-          href={`${import.meta.env.BASE_URL}hexmap-companion.apk`}
-          download
-          style={{
-            color: "#a78bfa",
-            fontSize: 12,
-            textDecoration: "none",
-            border: "1px solid #2e2e4a",
-            borderRadius: 4,
-            padding: "4px 10px",
-            whiteSpace: "nowrap",
-          }}
-        >
-          📱 Android app
-        </a>
         {isAdmin && entries.length > 0 && (
           <button
             onClick={() => {

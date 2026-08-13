@@ -518,6 +518,29 @@ function App() {
           </svg>
           Discord
         </a>
+        <a
+          href={`${import.meta.env.BASE_URL}hexmap-companion.apk`}
+          download
+          title="Download the Android combat-tracker app"
+          style={{
+            marginLeft: 8,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            color: "#9ca3af",
+            textDecoration: "none",
+            fontFamily: "'Cinzel', serif",
+            fontSize: 14,
+            letterSpacing: "0.5px",
+            padding: "6px 12px",
+            borderRadius: 6,
+            border: "1px solid #2e2e4a",
+            background: "#1e1e36",
+          }}
+        >
+          <span aria-hidden="true" style={{ fontSize: 16 }}>📱</span>
+          Android App
+        </a>
       </nav>
 
       {/* Sub Navigation */}
