@@ -138,6 +138,10 @@ create table if not exists initiative_tracker (
   max_hp integer,
   ac integer,
   cr real,
+  -- Optional GM-entered stats for custom creatures (attacks,
+  -- vulnerabilities/resistances/immunities). Shape: CreatureDetails in the
+  -- mobile app (mobile/src/types.ts).
+  details jsonb,
   created_at timestamptz default now()
 );
 
