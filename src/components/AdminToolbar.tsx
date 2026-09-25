@@ -267,7 +267,7 @@ export function AdminToolbar({
           cursor: "pointer",
         }}
       >
-        Logout
+        Sign out
       </button>
     </div>
   );

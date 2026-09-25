@@ -3,9 +3,10 @@
 Hexploration campaign companion — map, quests, shop and initiative tracker — served at
 the root of [map.jaeg.click](https://map.jaeg.click).
 
-It is **public**, and deliberately so: players identify themselves by typing a name,
-and admin is a PIN checked server-side by the `admin-action` Edge Function rather than
-an account.
+It is **public**, and deliberately so: players identify themselves by typing a name
+and never sign in. The admin is one signed-in Supabase account, the one listed in the
+`site_admins` table (seeded in the jaeg.click repo). The sign-in is shared across all
+of `*.jaeg.click`.
 
 ## Where the backend lives
 
@@ -19,8 +20,8 @@ client; the schema and Edge Functions live in the `supabase/` folder of
   order.
 - **Edge Functions:** `admin-action`, `generate-quests`, `discord-quest-sync`,
   `discord-finding-post`, `npc-quest-report`. Their secrets are set on the shared
-  project — at minimum `ADMIN_PIN`, plus whatever the Discord and quest-generation
-  functions read.
+  project — whatever the Discord and quest-generation functions read. There is no
+  admin secret; the functions check the caller's JWT against `site_admins`.
 
 Schema changes and function deploys are made from that repo, not this one.
 
@@ -82,8 +83,21 @@ The live-update subscriptions filter on table name (`table: "hexmap_quests"` and
 on), so those names have to match the tables exactly — they are not routed through the
 `.from()` calls and will silently stop updating if the two drift apart.
 
-## Anonymous requests
+## Anonymous players, one signed-in admin
 
-The client in `src/supabase.ts` is anonymous: nobody signs in. That works because the
-table policies allow public reads and the RPCs are granted to `anon`; anything that
-needs admin rights goes through the `admin-action` Edge Function with the PIN.
+Players' requests are anonymous. That works because the table policies allow public
+reads and the RPCs are granted to `anon`.
+
+The admin signs in with the lock button (GitHub, Discord or an email magic link). The
+client in `src/supabase.ts` is built with `createBrowserClient` from `@supabase/ssr`,
+and on `*.jaeg.click` it keeps the session in a cookie on `.jaeg.click` rather than in
+this origin's localStorage, so signing in on any jaeg.click app signs you in here too.
+Locally the cookie stays on the host.
+
+`src/hooks/useAdminMode.ts` asks the database whether the signed-in account is the
+admin (`rpc('is_site_admin')`), which only decides what the UI shows. Anything that
+needs admin rights goes through the `admin-action`, `generate-quests` or
+`npc-quest-report` Edge Functions; supabase-js attaches the session's JWT, and the
+functions answer 401 ("Sign in as the admin first") without one and 403 ("Not the
+admin") for any other account. The client shows that message as it shows other admin
+errors.

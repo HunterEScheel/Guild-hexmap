@@ -13,7 +13,6 @@ interface SidePanelProps {
   quests: Quest[];
   playerName: string | null;
   isAdmin: boolean;
-  adminPin: string | null;
   onJoinQuest: (questId: string) => void;
   onLeaveQuest: (questId: string) => void;
   onSetQuestActive: (questId: string) => void;
@@ -32,7 +31,6 @@ export function SidePanel({
   quests,
   playerName,
   isAdmin,
-  adminPin,
   onJoinQuest,
   onLeaveQuest,
   onSetQuestActive,
@@ -66,11 +64,11 @@ export function SidePanel({
   if (!isOpen) return null;
 
   function commitName() {
-    if (!isAdmin || !adminPin || !selectedHex) return;
+    if (!isAdmin || !selectedHex) return;
     const next = nameDraft.trim();
     const current = landmarkName ?? "";
     if (next === current) return;
-    setHexLandmarkName(adminPin, selectedHex.col, selectedHex.row, next || null).catch(
+    setHexLandmarkName(selectedHex.col, selectedHex.row, next || null).catch(
       (err) => {
         console.error("setHexLandmarkName failed:", err);
         alert(`Admin write rejected: ${err.message}`);

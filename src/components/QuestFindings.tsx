@@ -21,7 +21,6 @@ interface QuestFindingsProps {
   allQuests: Quest[];
   playerName: string | null;
   isAdmin: boolean;
-  adminPin: string | null;
   onSetPlayerName: () => void;
 }
 
@@ -71,7 +70,6 @@ export function QuestFindings({
   allQuests,
   playerName,
   isAdmin,
-  adminPin,
   onSetPlayerName,
 }: QuestFindingsProps) {
   const isPartyMember =
@@ -138,8 +136,8 @@ export function QuestFindings({
   }
 
   async function handleGenerate() {
-    if (!adminPin) {
-      setGenError("Admin PIN missing — log in again.");
+    if (!isAdmin) {
+      setGenError("Sign in as the admin first.");
       return;
     }
     setGenerating(true);
@@ -147,7 +145,6 @@ export function QuestFindings({
     setSuggestions(null);
     try {
       const result = await generateQuestsFromQuest(
-        adminPin,
         quest.id,
         hexes,
         allQuests,
@@ -325,7 +322,6 @@ export function QuestFindings({
           suggestions={suggestions}
           error={genError}
           loading={generating}
-          adminPin={adminPin}
           onDismiss={() => {
             setSuggestions(null);
             setGenError(null);
@@ -340,26 +336,20 @@ function SuggestionsPanel({
   suggestions,
   error,
   loading,
-  adminPin,
   onDismiss,
 }: {
   suggestions: QuestSuggestion[] | null;
   error: string | null;
   loading: boolean;
-  adminPin: string | null;
   onDismiss: () => void;
 }) {
   const [creating, setCreating] = useState<number | null>(null);
   const [created, setCreated] = useState<Set<number>>(new Set());
 
   async function handleCreate(i: number, s: QuestSuggestion) {
-    if (!adminPin) {
-      alert("Admin PIN missing — log in again.");
-      return;
-    }
     setCreating(i);
     try {
-      await createQuest(adminPin, {
+      await createQuest({
         title: s.title,
         description: s.description,
         reward: s.reward,
@@ -375,6 +365,8 @@ function SuggestionsPanel({
         foundItems: [],
       });
       setCreated((prev) => new Set(prev).add(i));
+    } catch (err) {
+      alert(`Admin write rejected: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setCreating(null);
     }

@@ -29,11 +29,10 @@ type ShopTab = "equipment" | "magic" | "purchased";
 
 interface ShopProps {
   isAdmin: boolean;
-  adminPin: string | null;
   playerName: string | null;
 }
 
-export function Shop({ isAdmin, adminPin, playerName }: ShopProps) {
+export function Shop({ isAdmin, playerName }: ShopProps) {
   const [tab, setTab] = useState<ShopTab>("equipment");
   // Player-only view can't reach the "purchased" tab.
   if (tab === "purchased" && !isAdmin) {
@@ -77,7 +76,6 @@ export function Shop({ isAdmin, adminPin, playerName }: ShopProps) {
       ) : tab === "magic" ? (
         <MagicShop
           isAdmin={isAdmin}
-          adminPin={adminPin}
           playerName={playerName}
         />
       ) : (
@@ -255,11 +253,9 @@ const RARITY_COLORS: Record<string, string> = {
 
 function MagicShop({
   isAdmin,
-  adminPin,
   playerName,
 }: {
   isAdmin: boolean;
-  adminPin: string | null;
   playerName: string | null;
 }) {
   const [inventory, setInventory] = useState<ShopItem[]>([]);
@@ -278,9 +274,9 @@ function MagicShop({
   useEffect(() => { loadInventory(); }, [loadInventory]);
 
   const handleRestock = async () => {
-    if (!adminPin) return;
+    if (!isAdmin) return;
     setRestocking(true);
-    await executeRestock(adminPin);
+    await executeRestock();
     await loadInventory();
     setRestocking(false);
   };
@@ -335,7 +331,7 @@ function MagicShop({
       )}
 
       {showAdmin && isAdmin && (
-        <RestockAdmin onSettingsChanged={loadInventory} adminPin={adminPin} />
+        <RestockAdmin onSettingsChanged={loadInventory} />
       )}
 
       {inventory.length === 0 ? (
@@ -398,8 +394,8 @@ function MagicShop({
                             );
                           }}
                           onBlur={() => {
-                            if (!adminPin) return;
-                            updateShopItemPrice(adminPin, item.id, item.price).catch(
+                            if (!isAdmin) return;
+                            updateShopItemPrice(item.id, item.price).catch(
                               (err) => console.error("updateShopItemPrice:", err)
                             );
                           }}
@@ -498,10 +494,8 @@ function MagicShop({
 
 function RestockAdmin({
   onSettingsChanged,
-  adminPin,
 }: {
   onSettingsChanged: () => void;
-  adminPin: string | null;
 }) {
   const [settings, setSettings] = useState<RestockSettings[]>([]);
   const [rules, setRules] = useState<RestockRule[]>([]);
@@ -530,8 +524,7 @@ function RestockAdmin({
   };
 
   const handleAddRule = async (item: { index: string; name: string; rarity: string }) => {
-    if (!adminPin) return;
-    await addRestockRule(adminPin, item.index, item.name, item.rarity, "1d4");
+    await addRestockRule(item.index, item.name, item.rarity, "1d4");
     setSearchResults([]);
     setSearchQuery("");
     await load();
@@ -576,8 +569,7 @@ function RestockAdmin({
                 setSettings((prev) =>
                   prev.map((p) => (p.rarity === s.rarity ? { ...p, count: val } : p))
                 );
-                if (!adminPin) return;
-                updateRestockSetting(adminPin, s.rarity, val);
+                updateRestockSetting(s.rarity, val);
               }}
               style={{
                 width: 60,
@@ -629,8 +621,7 @@ function RestockAdmin({
                   setRules((prev) =>
                     prev.map((r) => (r.id === rule.id ? { ...r, rarity: val } : r))
                   );
-                  if (!adminPin) return;
-                  updateRestockRule(adminPin, rule.id, { rarity: val });
+                  updateRestockRule(rule.id, { rarity: val });
                 }}
                 style={{
                   width: 90,
@@ -654,8 +645,7 @@ function RestockAdmin({
                   setRules((prev) =>
                     prev.map((r) => (r.id === rule.id ? { ...r, price: val } : r))
                   );
-                  if (!adminPin) return;
-                  updateRestockRule(adminPin, rule.id, { price: val });
+                  updateRestockRule(rule.id, { price: val });
                 }}
                 style={{
                   width: 70,
@@ -674,8 +664,7 @@ function RestockAdmin({
                   setRules((prev) =>
                     prev.map((r) => (r.id === rule.id ? { ...r, dice: val } : r))
                   );
-                  if (!adminPin) return;
-                  updateRestockRule(adminPin, rule.id, { dice: val });
+                  updateRestockRule(rule.id, { dice: val });
                 }}
                 style={{
                   width: 50,
@@ -693,8 +682,7 @@ function RestockAdmin({
               </span>
               <button
                 onClick={() => {
-                  if (!adminPin) return;
-                  updateRestockRule(adminPin, rule.id, { enabled: !rule.enabled });
+                  updateRestockRule(rule.id, { enabled: !rule.enabled });
                 }}
                 style={{
                   background: rule.enabled ? "#4ade80" : "#2e2e4a",
@@ -710,8 +698,7 @@ function RestockAdmin({
               </button>
               <button
                 onClick={async () => {
-                  if (!adminPin) return;
-                  await deleteRestockRule(adminPin, rule.id);
+                  await deleteRestockRule(rule.id);
                   await load();
                 }}
                 style={{

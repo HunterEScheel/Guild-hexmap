@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { HexGrid } from "./components/HexGrid";
 import { SidePanel } from "./components/SidePanel";
 import { AdminToolbar } from "./components/AdminToolbar";
-import { AdminPinModal } from "./components/AdminPinModal";
+import { AdminSignIn } from "./components/AdminSignIn";
 import { PlayerNameModal } from "./components/PlayerNameModal";
 import { QuestEditor } from "./components/QuestEditor";
 import { PayoutModal } from "./components/PayoutModal";
@@ -162,8 +162,8 @@ function App() {
   } | null>(null);
 
   // Admin
-  const { isAdmin, adminPin, showPinModal, promptPin, verifyPin, closePinModal, logout } =
-    useAdminMode();
+  const { user, isAdmin, checking, signOut } = useAdminMode();
+  const [showSignIn, setShowSignIn] = useState(false);
   const [selectedTerrain, setSelectedTerrain] = useState<TerrainType | null>(
     null
   );
@@ -206,23 +206,23 @@ function App() {
 
   const handleHexSelect = useCallback(
     (col: number, row: number) => {
-      if (isAdmin && adminPin && selectedTerrain) {
-        setHexTerrain(adminPin, col, row, selectedTerrain).catch((err) => {
+      if (isAdmin && selectedTerrain) {
+        setHexTerrain(col, row, selectedTerrain).catch((err) => {
           console.error("setHexTerrain failed:", err);
           alert(`Admin write rejected: ${err.message}`);
         });
         return;
       }
-      if (isAdmin && adminPin && selectedTier != null) {
-        setHexChallengeTier(adminPin, col, row, selectedTier).catch((err) => {
+      if (isAdmin && selectedTier != null) {
+        setHexChallengeTier(col, row, selectedTier).catch((err) => {
           console.error("setHexChallengeTier failed:", err);
           alert(`Admin write rejected: ${err.message}`);
         });
         return;
       }
-      if (isAdmin && adminPin && selectedLandmark != null) {
+      if (isAdmin && selectedLandmark != null) {
         const value = selectedLandmark === "clear" ? null : selectedLandmark;
-        setHexLandmark(adminPin, col, row, value).catch((err) => {
+        setHexLandmark(col, row, value).catch((err) => {
           console.error("setHexLandmark failed:", err);
           alert(`Admin write rejected: ${err.message}`);
         });
@@ -234,7 +234,7 @@ function App() {
       // Selecting a hex auto-opens the (possibly collapsed) info panel.
       setSidePanelOpen(true);
     },
-    [isAdmin, adminPin, selectedTerrain, selectedTier, selectedLandmark]
+    [isAdmin, selectedTerrain, selectedTier, selectedLandmark]
   );
 
   const handleJoinQuest = useCallback(
@@ -325,28 +325,28 @@ function App() {
 
   const handleDeleteQuest = useCallback(
     (questId: string) => {
-      if (!adminPin) return;
-      deleteQuest(adminPin, questId).catch((err) => {
+      if (!isAdmin) return;
+      deleteQuest(questId).catch((err) => {
         console.error("deleteQuest failed:", err);
         alert(`Admin write rejected: ${err.message}`);
       });
     },
-    [adminPin]
+    [isAdmin]
   );
 
   const handleQuestSave = useCallback(
     (questData: Omit<Quest, "id">) => {
-      if (!adminPin) return;
+      if (!isAdmin) return;
       const op = questEditor.quest
-        ? updateQuest(adminPin, questEditor.quest.id, questData)
-        : createQuest(adminPin, questData);
+        ? updateQuest(questEditor.quest.id, questData)
+        : createQuest(questData);
       op.catch((err) => {
         console.error("quest save failed:", err);
         alert(`Admin write rejected: ${err.message}`);
       });
       setQuestEditor({ isOpen: false, hexCol: 0, hexRow: 0 });
     },
-    [adminPin, questEditor.quest]
+    [isAdmin, questEditor.quest]
   );
 
   const handleOpenPayout = useCallback((quest: Quest) => {
@@ -355,11 +355,10 @@ function App() {
 
   const handlePayoutConfirm = useCallback(
     async (multiplier: number, beastBonus: number) => {
-      if (!adminPin || !payoutQuest) return;
+      if (!isAdmin || !payoutQuest) return;
       setPayoutBusy(true);
       try {
         const res = await payOutQuest(
-          adminPin,
           payoutQuest.id,
           multiplier,
           beastBonus
@@ -385,7 +384,7 @@ function App() {
         setPayoutBusy(false);
       }
     },
-    [adminPin, payoutQuest]
+    [isAdmin, payoutQuest]
   );
 
   const handleOpenFoundItems = useCallback((quest: Quest) => {
@@ -394,10 +393,10 @@ function App() {
 
   const handleFoundItemsSave = useCallback(
     async (items: FoundItem[]) => {
-      if (!adminPin || !foundItemsQuestId) return;
+      if (!isAdmin || !foundItemsQuestId) return;
       setFoundItemsBusy(true);
       try {
-        await setQuestFoundItems(adminPin, foundItemsQuestId, items);
+        await setQuestFoundItems(foundItemsQuestId, items);
         setFoundItemsQuestId(null);
       } catch (err) {
         console.error("setQuestFoundItems failed:", err);
@@ -408,13 +407,13 @@ function App() {
         setFoundItemsBusy(false);
       }
     },
-    [adminPin, foundItemsQuestId]
+    [isAdmin, foundItemsQuestId]
   );
 
   const handleRunEncounter = useCallback(async (encounter: GeneratedEncounter) => {
-    if (!adminPin) return;
+    if (!isAdmin) return;
     try {
-      await clearInitiativeTracker(adminPin);
+      await clearInitiativeTracker();
       const entries: { name: string; initiative: number; isCreature: boolean; stats: { hp: number; ac: number; cr: number } }[] = [];
       for (const group of encounter.groups) {
         for (let i = 0; i < group.count; i++) {
@@ -441,7 +440,7 @@ function App() {
       console.error("Failed to run encounter:", err);
     }
     setGuildSub("initiative");
-  }, [adminPin]);
+  }, [isAdmin]);
 
   const selectedHexData = selectedHex
     ? hexes.get(`${selectedHex.col}_${selectedHex.row}`)
@@ -564,7 +563,7 @@ function App() {
           onSelectTier={setSelectedTier}
           selectedLandmark={selectedLandmark}
           onSelectLandmark={setSelectedLandmark}
-          onLogout={logout}
+          onLogout={signOut}
         />
       )}
 
@@ -633,7 +632,6 @@ function App() {
             quests={quests}
             playerName={playerName}
             isAdmin={isAdmin}
-            adminPin={adminPin}
             onJoinQuest={handleJoinQuest}
             onLeaveQuest={handleLeaveQuest}
             onSetQuestActive={handleSetQuestActive}
@@ -654,7 +652,6 @@ function App() {
             findings={questFindings}
             playerName={playerName}
             isAdmin={isAdmin}
-            adminPin={adminPin}
             onJoinQuest={handleJoinQuest}
             onLeaveQuest={handleLeaveQuest}
             onEditQuest={handleEditQuest}
@@ -671,7 +668,7 @@ function App() {
         </div>
       ) : topPage === "guild" && guildSub === "shop" ? (
         <div style={{ flex: 1, overflow: "auto" }}>
-          <Shop isAdmin={isAdmin} adminPin={adminPin} playerName={playerName} />
+          <Shop isAdmin={isAdmin} playerName={playerName} />
         </div>
       ) : topPage === "guild" && guildSub === "initiative" ? (
         <div style={{ flex: 1, overflow: "auto" }}>
@@ -679,7 +676,6 @@ function App() {
             entries={initiativeEntries}
             playerName={playerName}
             isAdmin={isAdmin}
-            adminPin={adminPin}
             characters={characters}
           />
         </div>
@@ -713,11 +709,11 @@ function App() {
         </div>
       )}
 
-      {/* Global admin lock — visible on every page until logged in */}
-      {!isAdmin && (
+      {/* Global admin lock — visible on every page. Signs the admin in, or out. */}
+      {!checking || !user ? (
         <button
-          onClick={promptPin}
-          title="Admin Login"
+          onClick={isAdmin ? signOut : () => setShowSignIn(true)}
+          title={isAdmin ? "Sign out of admin" : "Admin sign in"}
           style={{
             position: "fixed",
             bottom: 16,
@@ -736,9 +732,9 @@ function App() {
             zIndex: 100,
           }}
         >
-          &#128274;
+          {isAdmin ? <>&#128275;</> : <>&#128274;</>}
         </button>
-      )}
+      ) : null}
 
       {/* Global character editor — visible on every page */}
       <button
@@ -757,7 +753,7 @@ function App() {
         style={{
           position: "fixed",
           bottom: 16,
-          left: isAdmin ? 16 : 68,
+          left: 68,
           width: 44,
           height: 44,
           borderRadius: 8,
@@ -776,8 +772,13 @@ function App() {
       </button>
 
       {/* Modals */}
-      {showPinModal && (
-        <AdminPinModal onVerify={verifyPin} onClose={closePinModal} />
+      {showSignIn && !isAdmin && (
+        <AdminSignIn
+          user={user}
+          checking={checking}
+          onSignOut={signOut}
+          onClose={() => setShowSignIn(false)}
+        />
       )}
 
       {showNameModal && (

@@ -1,53 +1,63 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "../supabase";
 
 /**
- * Admin auth is server-validated. The PIN is held by the user, sent to the
- * `admin-action` Edge Function which checks it against the ADMIN_PIN secret.
- * On success the PIN is kept in memory for the session and attached to every
- * subsequent admin write. Logout / page refresh drops it.
+ * Admin is one signed-in Supabase account: whichever account the database lists
+ * in `site_admins` (seeded in the jaeg.click repo). Players never sign in; only
+ * the admin does, and the session is a cookie shared across *.jaeg.click, so an
+ * admin signed in on any of those apps is signed in here too.
  *
- * Nothing about admin lives in the browser bundle anymore — flipping the
- * Supabase secret instantly invalidates every active admin everywhere.
+ * `isAdmin` only decides what the UI shows. The `admin-action` Edge Function
+ * checks the caller's JWT against `site_admins` on every write, so a tampered
+ * client gains nothing.
  */
 export function useAdminMode() {
-  const [adminPin, setAdminPin] = useState<string | null>(null);
-  const [showPinModal, setShowPinModal] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
+  const [checkedUserId, setCheckedUserId] = useState<string | null>(null);
 
-  const promptPin = useCallback(() => {
-    setShowPinModal(true);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+      setSessionLoaded(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setSessionLoaded(true);
+    });
+    return () => sub.subscription.unsubscribe();
   }, []);
 
-  const verifyPin = useCallback(async (pin: string): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase.functions.invoke("admin-action", {
-        body: { pin, action: "verify_pin" },
-      });
-      if (error) return false;
-      if ((data as { ok?: boolean })?.ok !== true) return false;
-      setAdminPin(pin);
-      setShowPinModal(false);
-      return true;
-    } catch {
-      return false;
-    }
+  const userId = user?.id ?? null;
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    supabase.rpc("is_site_admin").then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) console.warn("is_site_admin failed:", error.message);
+      setIsAdmin(!error && data === true);
+      setCheckedUserId(userId);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
   }, []);
 
-  const closePinModal = useCallback(() => {
-    setShowPinModal(false);
-  }, []);
-
-  const logout = useCallback(() => {
-    setAdminPin(null);
-  }, []);
+  // Still working out who this is: the stored session hasn't loaded, or a user
+  // is signed in whose admin status hasn't come back yet.
+  const checking = !sessionLoaded || (userId != null && checkedUserId !== userId);
 
   return {
-    isAdmin: adminPin != null,
-    adminPin,
-    showPinModal,
-    promptPin,
-    verifyPin,
-    closePinModal,
-    logout,
+    user,
+    isAdmin: userId != null && checkedUserId === userId && isAdmin,
+    checking,
+    signOut,
   };
 }

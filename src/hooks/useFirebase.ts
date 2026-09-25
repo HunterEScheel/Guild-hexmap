@@ -195,16 +195,37 @@ function postFindingToDiscord(findingId: string): void {
     });
 }
 
+/**
+ * An Edge Function that answers with a non-2xx status (401 "Sign in as the
+ * admin first", 403 "Not the admin", or a failed action) puts its reason in the
+ * JSON body. supabase-js only reports "non-2xx status code", so read the body
+ * to surface the reason the function gave.
+ */
+async function edgeFunctionErrorMessage(error: {
+  message: string;
+  context?: unknown;
+}): Promise<string> {
+  const response = error.context;
+  if (response instanceof Response) {
+    try {
+      const body = (await response.clone().json()) as { error?: unknown };
+      if (typeof body?.error === "string" && body.error) return body.error;
+    } catch {
+      // Not JSON; fall back to the client's message.
+    }
+  }
+  return error.message;
+}
+
 export async function callAdminAction(
-  pin: string,
   action: string,
   payload: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
   const { data, error } = await supabase.functions.invoke("admin-action", {
-    body: { pin, action, payload },
+    body: { action, payload },
   });
   if (error) {
-    throw new Error(`admin-action failed: ${error.message}`);
+    throw new Error(await edgeFunctionErrorMessage(error));
   }
   if (!data || (data as { ok?: boolean }).ok !== true) {
     const msg = (data as { error?: string })?.error || "unknown error";
@@ -214,61 +235,55 @@ export async function callAdminAction(
 }
 
 export async function setHexTerrain(
-  pin: string,
   col: number,
   row: number,
   terrain: TerrainType
 ): Promise<void> {
-  await callAdminAction(pin, "set_hex_terrain", { col, row, terrain });
+  await callAdminAction("set_hex_terrain", { col, row, terrain });
 }
 
 export async function setHexChallengeTier(
-  pin: string,
   col: number,
   row: number,
   tier: ChallengeTier | null
 ): Promise<void> {
-  await callAdminAction(pin, "set_hex_challenge_tier", { col, row, tier });
+  await callAdminAction("set_hex_challenge_tier", { col, row, tier });
 }
 
 export async function setHexLandmark(
-  pin: string,
   col: number,
   row: number,
   landmark: Landmark | null
 ): Promise<void> {
-  await callAdminAction(pin, "set_hex_landmark", { col, row, landmark });
+  await callAdminAction("set_hex_landmark", { col, row, landmark });
 }
 
 export async function setHexLandmarkName(
-  pin: string,
   col: number,
   row: number,
   name: string | null
 ): Promise<void> {
-  await callAdminAction(pin, "set_hex_landmark_name", { col, row, name });
+  await callAdminAction("set_hex_landmark_name", { col, row, name });
 }
 
 export async function createQuest(
-  pin: string,
   quest: Omit<Quest, "id">
 ): Promise<void> {
-  await callAdminAction(pin, "create_quest", { ...quest });
+  await callAdminAction("create_quest", { ...quest });
   // No id to sync yet — Discord post happens on the first join.
 }
 
 export async function updateQuest(
-  pin: string,
   id: string,
   updates: Partial<Quest>
 ): Promise<void> {
-  await callAdminAction(pin, "update_quest", { id, ...updates });
+  await callAdminAction("update_quest", { id, ...updates });
   syncQuestToDiscord(id);
 }
 
-export async function deleteQuest(pin: string, id: string): Promise<void> {
+export async function deleteQuest(id: string): Promise<void> {
   // delete_quest action handles the Discord message deletion server-side.
-  await callAdminAction(pin, "delete_quest", { id });
+  await callAdminAction("delete_quest", { id });
 }
 
 /**
@@ -277,11 +292,10 @@ export async function deleteQuest(pin: string, id: string): Promise<void> {
  * "My Items" (derived from the live quests), so reassigning never desyncs.
  */
 export async function setQuestFoundItems(
-  pin: string,
   questId: string,
   items: FoundItem[]
 ): Promise<void> {
-  await callAdminAction(pin, "set_quest_found_items", { id: questId, items });
+  await callAdminAction("set_quest_found_items", { id: questId, items });
   syncQuestToDiscord(questId);
 }
 
@@ -303,12 +317,11 @@ export interface PayoutResult {
  * computation happens server-side in the admin-action Edge Function.
  */
 export async function payOutQuest(
-  pin: string,
   questId: string,
   multiplier: number,
   beastBonus: number
 ): Promise<PayoutResult> {
-  const data = await callAdminAction(pin, "pay_out_quest", {
+  const data = await callAdminAction("pay_out_quest", {
     id: questId,
     multiplier,
     beastBonus,
@@ -371,13 +384,14 @@ export interface NpcReportSummary {
  * completed 1-2 currently-available (unclaimed) quests. Marks them
  * completed and populates their findings.
  */
-export async function generateNpcQuestReport(
-  pin: string
-): Promise<{ applied: NpcReportSummary[]; message: string }> {
+export async function generateNpcQuestReport(): Promise<{
+  applied: NpcReportSummary[];
+  message: string;
+}> {
   const { data, error } = await supabase.functions.invoke("npc-quest-report", {
-    body: { pin },
+    body: {},
   });
-  if (error) throw new Error(`Edge function error: ${error.message}`);
+  if (error) throw new Error(await edgeFunctionErrorMessage(error));
   if (!data || (data as { ok?: boolean }).ok !== true) {
     throw new Error(
       (data as { error?: string })?.error || "unknown NPC report error"
@@ -472,22 +486,20 @@ export async function addInitiativeEntry(
 }
 
 export async function removeInitiativeEntry(
-  pin: string,
   id: string
 ): Promise<void> {
-  await callAdminAction(pin, "remove_initiative_entry", { id });
+  await callAdminAction("remove_initiative_entry", { id });
 }
 
 export async function updateInitiativeHp(
-  pin: string,
   id: string,
   hp: number
 ): Promise<void> {
-  await callAdminAction(pin, "update_initiative_hp", { id, hp });
+  await callAdminAction("update_initiative_hp", { id, hp });
 }
 
-export async function clearInitiativeTracker(pin: string): Promise<void> {
-  await callAdminAction(pin, "clear_initiative", {});
+export async function clearInitiativeTracker(): Promise<void> {
+  await callAdminAction("clear_initiative", {});
 }
 
 // --- Characters ---
@@ -664,7 +676,6 @@ export async function deleteQuestFinding(id: string): Promise<void> {
  * `generate-quests` Edge Function, which calls xAI server-side.
  */
 export async function generateQuestsFromQuest(
-  pin: string,
   questId: string,
   hexes: Map<string, HexData>,
   quests: Quest[],
@@ -676,7 +687,6 @@ export async function generateQuestsFromQuest(
 
   const { data, error } = await supabase.functions.invoke("generate-quests", {
     body: {
-      pin,
       questId,
       hexes: filledHexes.map((h) => ({
         col: h.col,
@@ -707,7 +717,7 @@ export async function generateQuestsFromQuest(
   });
 
   if (error) {
-    throw new Error(`Edge function error: ${error.message}`);
+    throw new Error(await edgeFunctionErrorMessage(error));
   }
   const suggestions = (data as { suggestions?: QuestSuggestion[] })?.suggestions;
   if (!Array.isArray(suggestions)) {

@@ -10,7 +10,6 @@ interface ActiveQuestsProps {
   findings: QuestFinding[];
   playerName: string | null;
   isAdmin: boolean;
-  adminPin: string | null;
   onJoinQuest: (questId: string) => void;
   onLeaveQuest: (questId: string) => void;
   onEditQuest: (quest: Quest) => void;
@@ -27,7 +26,6 @@ export function ActiveQuests({
   findings,
   playerName,
   isAdmin,
-  adminPin,
   onJoinQuest,
   onLeaveQuest,
   onEditQuest,
@@ -43,12 +41,12 @@ export function ActiveQuests({
   const [rivalError, setRivalError] = useState<string | null>(null);
 
   async function runRivalParty() {
-    if (!adminPin) return;
+    if (!isAdmin) return;
     setRivalRunning(true);
     setRivalMessage(null);
     setRivalError(null);
     try {
-      const { message } = await generateNpcQuestReport(adminPin);
+      const { message } = await generateNpcQuestReport();
       setRivalMessage(message);
     } catch (err) {
       setRivalError(
@@ -271,7 +269,6 @@ export function ActiveQuests({
                 allQuests={quests}
                 playerName={playerName}
                 isAdmin={isAdmin}
-                adminPin={adminPin}
                 onSetPlayerName={onSetPlayerName}
               />
             )}

@@ -170,13 +170,12 @@ export async function fetchRestockRules(): Promise<RestockRule[]> {
 }
 
 export async function addRestockRule(
-  pin: string,
   itemIndex: string,
   itemName: string,
   rarity: string,
   dice: string
 ): Promise<void> {
-  await callAdminAction(pin, "restock_rule_upsert", {
+  await callAdminAction("restock_rule_upsert", {
     itemIndex,
     itemName,
     rarity,
@@ -187,15 +186,14 @@ export async function addRestockRule(
 }
 
 export async function updateRestockRule(
-  pin: string,
   id: string,
   updates: Partial<{ dice: string; price: string; rarity: string; enabled: boolean }>
 ): Promise<void> {
-  await callAdminAction(pin, "restock_rule_update", { id, ...updates });
+  await callAdminAction("restock_rule_update", { id, ...updates });
 }
 
-export async function deleteRestockRule(pin: string, id: string): Promise<void> {
-  await callAdminAction(pin, "restock_rule_delete", { id });
+export async function deleteRestockRule(id: string): Promise<void> {
+  await callAdminAction("restock_rule_delete", { id });
 }
 
 // --- Restock Settings ---
@@ -213,11 +211,10 @@ export async function fetchRestockSettings(): Promise<RestockSettings[]> {
 }
 
 export async function updateRestockSetting(
-  pin: string,
   rarity: string,
   count: number
 ): Promise<void> {
-  await callAdminAction(pin, "restock_setting_update", { rarity, count });
+  await callAdminAction("restock_setting_update", { rarity, count });
 }
 
 // --- Dice Rolling ---
@@ -453,7 +450,7 @@ function shuffle<T>(arr: T[]): T[] {
   return copy;
 }
 
-export async function executeRestock(pin: string): Promise<{ added: number }> {
+export async function executeRestock(): Promise<{ added: number }> {
   const [settings, rules, allItems, currentInventory] = await Promise.all([
     fetchRestockSettings(),
     fetchRestockRules(),
@@ -577,14 +574,14 @@ export async function executeRestock(pin: string): Promise<{ added: number }> {
   for (const item of currentInventory) currentQtyById.set(item.id, item.quantity);
   await Promise.all(
     [...bumps.entries()].map(([id, delta]) =>
-      callAdminAction(pin, "shop_update_quantity", {
+      callAdminAction("shop_update_quantity", {
         id,
         quantity: (currentQtyById.get(id) ?? 0) + delta,
       })
     )
   );
   if (inserts.length > 0) {
-    await callAdminAction(pin, "shop_insert_items", { items: inserts });
+    await callAdminAction("shop_insert_items", { items: inserts });
   }
 
   return { added: inserts.length };
@@ -683,11 +680,10 @@ export async function fetchShopPurchases(): Promise<PurchasedItem[]> {
 }
 
 export async function updateShopItemPrice(
-  pin: string,
   id: string,
   price: string
 ): Promise<void> {
-  await callAdminAction(pin, "shop_update_price", { id, price });
+  await callAdminAction("shop_update_price", { id, price });
 }
 
 // --- Magic Item Search (for adding restock rules) ---

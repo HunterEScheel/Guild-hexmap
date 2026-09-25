@@ -4,9 +4,15 @@ D&D hexploration campaign companion: the hex map, quests and bounty board, the s
 characters and an initiative tracker, all updating live for everyone at the table.
 Served at [map.jaeg.click](https://map.jaeg.click).
 
-It is **public**. Players identify themselves by typing a name; there are no accounts.
-Admin tools unlock with a PIN, which is checked server-side by the `admin-action`
-Edge Function rather than in the browser.
+It is **public**. Players identify themselves by typing a name and never sign in.
+The admin does sign in, through the lock button (GitHub, Discord or an email link), and
+the admin tools open for the one account listed in the `site_admins` table, which is
+seeded in the jaeg.click repo. The `admin-action` Edge Function checks that account on
+every write, so the check is server-side rather than in the browser.
+
+The sign-in is shared across every app on `*.jaeg.click`: the session is a cookie on
+`.jaeg.click`, so an admin signed in on any of them is signed in here. Running locally
+there is no parent domain, and the session stays on `localhost`.
 
 ## Backend
 
@@ -26,8 +32,9 @@ Copy `.env.example` to `.env.local` and fill in the shared project's values:
 | `VITE_SUPABASE_URL` | The Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | The project's anon (publishable) key |
 
-The admin PIN is not a client variable; it is the `ADMIN_PIN` secret on the Edge
-Function.
+There is no admin variable. Who the admin is lives in the database (`site_admins`), and
+the Supabase Auth redirect allow-list has to include the map's URLs (production and
+`http://localhost:5173` for local work) for sign-in to return here.
 
 `src/supabase.ts` throws at module load when either variable is missing. At build time
 they are inlined, so without them every module that imports the client becomes
