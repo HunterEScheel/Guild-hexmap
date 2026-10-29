@@ -23,6 +23,11 @@ interface QuestCardProps {
    */
   onManageFoundItems?: (quest: Quest) => void;
   /**
+   * Admin-only. Has an NPC party complete this quest. Shown only on
+   * available quests; when omitted, the NPC Complete button is hidden.
+   */
+  onNpcComplete?: (quest: Quest) => Promise<void>;
+  /**
    * Optional content rendered inside the expanded section, below the party
    * list. ActiveQuests uses this to inject the QuestFindings panel for
    * completed quests.
@@ -76,11 +81,13 @@ export function QuestCard({
   onSetActive,
   onPayOut,
   onManageFoundItems,
+  onNpcComplete,
   expandedExtras,
   defaultExpanded = false,
   compact = false,
 }: QuestCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const [npcRunning, setNpcRunning] = useState(false);
   const levelColor = QUEST_LEVEL_COLORS[quest.level];
   const hasJoined = playerName ? quest.players.includes(playerName) : false;
   // A closed quest (completed or paid out) is done — join/leave/set-active
@@ -166,6 +173,19 @@ export function QuestCard({
               title="Attach found items and assign them to players"
             >
               Found Items
+            </button>
+          )}
+          {onNpcComplete && quest.status === "available" && (
+            <button
+              className="qc-btn qc-btn--npc"
+              disabled={npcRunning}
+              onClick={() => {
+                setNpcRunning(true);
+                onNpcComplete(quest).finally(() => setNpcRunning(false));
+              }}
+              title="Have an NPC party complete this quest and file findings"
+            >
+              {npcRunning ? "Whispering…" : "NPC Complete"}
             </button>
           )}
           {onPayOut && quest.status !== "paid_out" && (

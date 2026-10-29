@@ -30,6 +30,7 @@ import {
   createQuest,
   updateQuest,
   deleteQuest,
+  generateNpcQuestReport,
   joinQuest,
   leaveQuest,
   setQuestActive,
@@ -330,6 +331,23 @@ function App() {
         console.error("deleteQuest failed:", err);
         alert(`Admin write rejected: ${err.message}`);
       });
+    },
+    [isAdmin]
+  );
+
+  const handleNpcCompleteQuest = useCallback(
+    async (quest: Quest) => {
+      if (!isAdmin) return;
+      if (!confirm(`Have an NPC party complete "${quest.title}"?`)) return;
+      try {
+        const { message } = await generateNpcQuestReport(quest.id);
+        if (message) alert(message);
+      } catch (err) {
+        console.error("generateNpcQuestReport failed:", err);
+        alert(
+          `NPC report failed: ${err instanceof Error ? err.message : err}`
+        );
+      }
     },
     [isAdmin]
   );
@@ -637,6 +655,7 @@ function App() {
             onSetQuestActive={handleSetQuestActive}
             onEditQuest={handleEditQuest}
             onDeleteQuest={handleDeleteQuest}
+            onNpcCompleteQuest={handleNpcCompleteQuest}
             onAddQuest={handleAddQuest}
             onRunEncounter={isAdmin ? handleRunEncounter : undefined}
             isMobile={isMobile}

@@ -382,14 +382,15 @@ export interface NpcReportSummary {
 /**
  * Admin-only. Asks the AI to roleplay a rival NPC party that quietly
  * completed 1-2 currently-available (unclaimed) quests. Marks them
- * completed and populates their findings.
+ * completed and populates their findings. Pass a questId to have the
+ * NPCs complete that one quest instead of letting the AI pick.
  */
-export async function generateNpcQuestReport(): Promise<{
+export async function generateNpcQuestReport(questId?: string): Promise<{
   applied: NpcReportSummary[];
   message: string;
 }> {
   const { data, error } = await supabase.functions.invoke("npc-quest-report", {
-    body: {},
+    body: questId ? { questId } : {},
   });
   if (error) throw new Error(await edgeFunctionErrorMessage(error));
   if (!data || (data as { ok?: boolean }).ok !== true) {

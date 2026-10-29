@@ -101,3 +101,13 @@ needs admin rights goes through the `admin-action`, `generate-quests` or
 functions answer 401 ("Sign in as the admin first") without one and 403 ("Not the
 admin") for any other account. The client shows that message as it shows other admin
 errors.
+
+## NPC-completing one quest from the map
+
+On the map, an admin sees an **NPC Complete** button on any available quest in the
+side panel. It calls `npc-quest-report` with `{ questId }` in the body, asking the
+function to complete that quest rather than picking 1–2 unclaimed ones itself. The
+function has to honour that field: when `questId` is set, complete exactly that quest
+(404 if it doesn't exist, 409 if it isn't `available`) and return the same
+`{ ok, applied, message }` shape. With an empty body it behaves as before, which the
+Rival Party Report button on Active Quests still relies on.
