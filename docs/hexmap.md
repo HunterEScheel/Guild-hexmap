@@ -105,9 +105,9 @@ errors.
 ## NPC-completing one quest from the map
 
 On the map, an admin sees an **NPC Complete** button on any available quest in the
-side panel. It calls `npc-quest-report` with `{ questId }` in the body, asking the
-function to complete that quest rather than picking 1–2 unclaimed ones itself. The
-function has to honour that field: when `questId` is set, complete exactly that quest
-(404 if it doesn't exist, 409 if it isn't `available`) and return the same
-`{ ok, applied, message }` shape. With an empty body it behaves as before, which the
-Rival Party Report button on Active Quests still relies on.
+side panel that nobody has joined. It calls `npc-quest-report` with `{ questId }` in
+the body, and the function completes exactly that quest instead of letting the AI
+pick 1–2: 404 if it doesn't exist, 409 if it isn't `available` or players have
+signed up. The recurring/explore rule doesn't apply to a quest the admin names. With
+an empty body it behaves as before, which the Rival Party Report button on Active
+Quests still relies on.

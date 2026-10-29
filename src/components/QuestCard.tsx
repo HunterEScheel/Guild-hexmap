@@ -24,7 +24,8 @@ interface QuestCardProps {
   onManageFoundItems?: (quest: Quest) => void;
   /**
    * Admin-only. Has an NPC party complete this quest. Shown only on
-   * available quests; when omitted, the NPC Complete button is hidden.
+   * available quests nobody has joined (npc-quest-report refuses the rest);
+   * when omitted, the NPC Complete button is hidden.
    */
   onNpcComplete?: (quest: Quest) => Promise<void>;
   /**
@@ -175,7 +176,9 @@ export function QuestCard({
               Found Items
             </button>
           )}
-          {onNpcComplete && quest.status === "available" && (
+          {onNpcComplete &&
+            quest.status === "available" &&
+            quest.players.length === 0 && (
             <button
               className="qc-btn qc-btn--npc"
               disabled={npcRunning}
