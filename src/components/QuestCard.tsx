@@ -1,6 +1,7 @@
 import { useCallback, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { QUEST_LEVEL_COLORS, QUEST_LEVEL_LABELS } from "../utils/colors";
 import { formatReward } from "../utils/reward";
+import { joinQuest, leaveQuest } from "../hooks/useFirebase";
 import type { Quest } from "../types";
 
 interface QuestCardProps {
@@ -28,6 +29,11 @@ interface QuestCardProps {
    * when omitted, the NPC Complete button is hidden.
    */
   onNpcComplete?: (quest: Quest) => Promise<void>;
+  /**
+   * Admin-only. Names offered when adding a player to the party. The admin
+   * can still type any name.
+   */
+  knownPlayers?: string[];
   /**
    * Optional content rendered inside the expanded section, below the party
    * list. ActiveQuests uses this to inject the QuestFindings panel for
@@ -83,6 +89,7 @@ export function QuestCard({
   onPayOut,
   onManageFoundItems,
   onNpcComplete,
+  knownPlayers = [],
   expandedExtras,
   defaultExpanded = false,
   compact = false,
@@ -295,9 +302,13 @@ export function QuestCard({
 
           <div className="qc-field">
             <span className="qc-field-label">Party</span>
-            <span className="qc-field-value">
-              {quest.players.length > 0 ? quest.players.join(", ") : "—"}
-            </span>
+            {isAdmin && !isClosed ? (
+              <AdminPartyEditor quest={quest} knownPlayers={knownPlayers} />
+            ) : (
+              <span className="qc-field-value">
+                {quest.players.length > 0 ? quest.players.join(", ") : "—"}
+              </span>
+            )}
           </div>
 
           {quest.foundItems.length > 0 && (
@@ -343,6 +354,96 @@ export function QuestCard({
 
       {!compact && actions}
     </div>
+  );
+}
+
+/**
+ * Admin-only party list: remove anyone, or add a player by name. Goes
+ * through the same join/leave RPCs players use, so the Discord sync and
+ * any server-side checks still apply.
+ */
+function AdminPartyEditor({
+  quest,
+  knownPlayers,
+}: {
+  quest: Quest;
+  knownPlayers: string[];
+}) {
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const suggestions = knownPlayers.filter((n) => !quest.players.includes(n));
+  const listId = `qc-party-${quest.id}`;
+
+  async function run(op: Promise<void>) {
+    setBusy(true);
+    try {
+      await op;
+      return true;
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function add() {
+    const name = draft.trim();
+    if (!name || quest.players.includes(name)) return;
+    if (await run(joinQuest(quest.id, name))) setDraft("");
+  }
+
+  function remove(name: string) {
+    if (!confirm(`Remove ${name} from "${quest.title}"?`)) return;
+    run(leaveQuest(quest.id, name));
+  }
+
+  return (
+    <span className="qc-field-value qc-party-edit">
+      {quest.players.length === 0 && <span>—</span>}
+      {quest.players.map((name) => (
+        <span key={name} className="qc-party-chip">
+          {name}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => remove(name)}
+            title={`Remove ${name}`}
+            aria-label={`Remove ${name}`}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+      <span className="qc-party-add">
+        <input
+          list={listId}
+          value={draft}
+          disabled={busy}
+          placeholder="Add player…"
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
+        />
+        <datalist id={listId}>
+          {suggestions.map((n) => (
+            <option key={n} value={n} />
+          ))}
+        </datalist>
+        <button
+          type="button"
+          className="qc-btn qc-btn--join"
+          disabled={busy || !draft.trim()}
+          onClick={add}
+        >
+          Add
+        </button>
+      </span>
+    </span>
   );
 }
 

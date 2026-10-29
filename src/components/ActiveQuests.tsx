@@ -18,6 +18,7 @@ interface ActiveQuestsProps {
   onPayOutQuest: (quest: Quest) => void;
   onManageFoundItems: (quest: Quest) => void;
   onSetPlayerName: () => void;
+  knownPlayers?: string[];
 }
 
 export function ActiveQuests({
@@ -34,6 +35,7 @@ export function ActiveQuests({
   onPayOutQuest,
   onManageFoundItems,
   onSetPlayerName,
+  knownPlayers,
 }: ActiveQuestsProps) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [rivalRunning, setRivalRunning] = useState(false);
@@ -203,6 +205,7 @@ export function ActiveQuests({
             onSetActive={onSetQuestActive}
             onPayOut={onPayOutQuest}
             onManageFoundItems={onManageFoundItems}
+            knownPlayers={knownPlayers}
             accentColor="#facc15"
           />
           <QuestSection
@@ -217,6 +220,7 @@ export function ActiveQuests({
             onSetActive={onSetQuestActive}
             onPayOut={onPayOutQuest}
             onManageFoundItems={onManageFoundItems}
+            knownPlayers={knownPlayers}
             accentColor="#60a5fa"
           />
         </>
@@ -260,6 +264,7 @@ export function ActiveQuests({
             onSetActive={onSetQuestActive}
             onPayOut={onPayOutQuest}
             onManageFoundItems={onManageFoundItems}
+            knownPlayers={knownPlayers}
             accentColor="#4ade80"
             renderExpandedExtras={(quest) => (
               <QuestFindings
@@ -293,6 +298,7 @@ function QuestSection({
   onManageFoundItems,
   accentColor,
   renderExpandedExtras,
+  knownPlayers,
 }: {
   title: string;
   quests: Quest[];
@@ -307,6 +313,7 @@ function QuestSection({
   onManageFoundItems: (quest: Quest) => void;
   accentColor: string;
   renderExpandedExtras?: (quest: Quest) => React.ReactNode;
+  knownPlayers?: string[];
 }) {
   if (quests.length === 0) return null;
 
@@ -368,6 +375,7 @@ function QuestSection({
               onSetActive={onSetActive}
               onPayOut={onPayOut}
               onManageFoundItems={onManageFoundItems}
+              knownPlayers={knownPlayers}
               expandedExtras={
                 renderExpandedExtras ? renderExpandedExtras(quest) : undefined
               }

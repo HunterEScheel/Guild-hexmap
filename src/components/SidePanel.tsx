@@ -19,6 +19,7 @@ interface SidePanelProps {
   onEditQuest: (quest: Quest) => void;
   onDeleteQuest: (questId: string) => void;
   onNpcCompleteQuest?: (quest: Quest) => Promise<void>;
+  knownPlayers?: string[];
   onAddQuest: () => void;
   onRunEncounter?: (encounter: GeneratedEncounter) => void;
   isMobile?: boolean;
@@ -38,6 +39,7 @@ export function SidePanel({
   onEditQuest,
   onDeleteQuest,
   onNpcCompleteQuest,
+  knownPlayers,
   onAddQuest,
   onRunEncounter,
   isMobile = false,
@@ -349,6 +351,7 @@ export function SidePanel({
                   onEdit={onEditQuest}
                   onDelete={onDeleteQuest}
                   onNpcComplete={isAdmin ? onNpcCompleteQuest : undefined}
+                  knownPlayers={knownPlayers}
                   compact
                 />
               ))

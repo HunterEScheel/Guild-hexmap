@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { HexGrid } from "./components/HexGrid";
 import { SidePanel } from "./components/SidePanel";
 import { AdminToolbar } from "./components/AdminToolbar";
@@ -152,6 +152,13 @@ function App() {
   const initiativeEntries = useInitiative();
   const questFindings = useQuestFindings();
   const characters = useCharacters();
+  // Every name the admin might add to a party: anyone with a character
+  // sheet, plus anyone who has been on a quest.
+  const knownPlayers = useMemo(() => {
+    const names = new Set(characters.keys());
+    for (const q of quests) for (const p of q.players) names.add(p);
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [characters, quests]);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const isMobile = useIsMobile();
   const [sidePanelOpen, setSidePanelOpen] = useState(!isMobile);
@@ -656,6 +663,7 @@ function App() {
             onEditQuest={handleEditQuest}
             onDeleteQuest={handleDeleteQuest}
             onNpcCompleteQuest={handleNpcCompleteQuest}
+            knownPlayers={isAdmin ? knownPlayers : undefined}
             onAddQuest={handleAddQuest}
             onRunEncounter={isAdmin ? handleRunEncounter : undefined}
             isMobile={isMobile}
@@ -679,6 +687,7 @@ function App() {
             onPayOutQuest={handleOpenPayout}
             onManageFoundItems={handleOpenFoundItems}
             onSetPlayerName={() => setShowNameModal(true)}
+            knownPlayers={isAdmin ? knownPlayers : undefined}
           />
         </div>
       ) : topPage === "guild" && guildSub === "bounties" ? (
