@@ -347,7 +347,19 @@ function App() {
       if (!isAdmin) return;
       if (!confirm(`Have an NPC party complete "${quest.title}"?`)) return;
       try {
-        const { message } = await generateNpcQuestReport(quest.id);
+        const { applied, message } = await generateNpcQuestReport(quest.id);
+        // An npc-quest-report that predates { questId } ignores it and lets
+        // the AI pick: say so rather than reporting success.
+        const others = applied.filter((a) => a.questId !== quest.id);
+        if (others.length > 0) {
+          alert(
+            `The server completed ${others
+              .map((a) => `"${a.questTitle}"`)
+              .join(" and ")} instead of "${quest.title}". The deployed ` +
+              "npc-quest-report is out of date: redeploy it from jaeg.click."
+          );
+          return;
+        }
         if (message) alert(message);
       } catch (err) {
         console.error("generateNpcQuestReport failed:", err);
